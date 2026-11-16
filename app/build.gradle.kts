@@ -1,3 +1,5 @@
+import com.android.build.api.artifact.SingleArtifact
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -42,6 +44,29 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        val variantTitle = variant.name.replaceFirstChar { it.uppercaseChar() }
+        val versionName = variant.outputs.single().versionName.get()
+        val buildSuffix = if (variant.buildType == "release") "" else "-${variant.name}"
+        val exportApk = tasks.register<Copy>("export${variantTitle}Apk") {
+            group = "distribution"
+            description = "Export the ${variant.name} APK with the product name and version."
+            from(variant.artifacts.get(SingleArtifact.APK)) {
+                include("*.apk")
+                rename { fileName ->
+                    val signingSuffix = if (fileName.endsWith("-unsigned.apk")) "-unsigned" else ""
+                    "ble-hr-viewer-$versionName$buildSuffix$signingSuffix.apk"
+                }
+            }
+            into(rootProject.layout.projectDirectory.dir("dist"))
+        }
+        tasks.matching { it.name == "assemble$variantTitle" }.configureEach {
+            finalizedBy(exportApk)
         }
     }
 }

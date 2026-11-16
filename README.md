@@ -25,6 +25,8 @@
 
 一个简单的 Android 心率查看工具，通过 BLE 接收手环等设备的心率（Heart Rate，简称 HR），在主界面或其他应用上方实时显示。
 
+项目正式名称为 **BLE Heart Rate Viewer**，安装后的应用名称、应用内标题和通知标题使用 **BLE HR Viewer**。
+
 应用作为 GATT Notify 客户端，订阅标准 Heart Rate Service（`0x180D`）下的 Heart Rate Measurement（`0x2A37`）特征。
 
 ## 功能
@@ -63,15 +65,17 @@ Windows：
 
 ```powershell
 .\gradlew.bat :app:assembleDebug
-adb install -r app\build\outputs\apk\debug\app-debug.apk
+adb install -r dist\ble-hr-viewer-0.3.4-debug.apk
 ```
 
 Linux / macOS：
 
 ```sh
 ./gradlew :app:assembleDebug
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r dist/ble-hr-viewer-0.3.4-debug.apk
 ```
+
+构建完成后会自动将带产品名和版本号的 APK 导出到 `dist/`，版本号取自构建配置。
 
 若 Gradle 下载遇到证书错误，请检查本机 JDK 的证书与网络配置，或使用已安装的 Gradle 8.13。
 
@@ -84,7 +88,8 @@ Windows 使用以下命令；Linux / macOS 将 `.\gradlew.bat` 替换为 `./grad
 ```
 
 - 发布前核对 `app/build.gradle.kts` 中的 `versionCode`、`versionName` 和本文件的版本信息。
-- Debug APK 用于本地测试。当前未配置 release 签名，`assembleRelease` 生成的是未签名 APK；正式分发前需使用维护者自己的签名密钥生成签名 APK。
+- Debug APK 用于本地测试，导出为 `ble-hr-viewer-0.3.4-debug.apk`。
+- 当前未配置 release 签名，`assembleRelease` 导出的是 `ble-hr-viewer-0.3.4-unsigned.apk`；正式分发前需使用维护者自己的签名密钥生成签名 APK，签名后的正式包命名为 `ble-hr-viewer-0.3.4.apk`。
 - 签名密钥、密码和本机配置不入库。安装包及其 SHA-256 校验值作为发布附件提供，构建产物不提交到 Git。
 - 在真机上检查设备扫描、心率订阅、断开连接，以及悬浮窗的授权、后台显示、拖动和长按关闭。
 
