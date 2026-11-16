@@ -1,0 +1,32 @@
+# Gradle, Kotlin and Android build outputs
+.gradle/
+.kotlin/
+build/
+.externalNativeBuild/
+.cxx/
+/dist/
+/captures/
+*.apk
+*.aab
+*.apks
+*.log
+
+# Local SDK and editor settings
+/local.properties
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Signing credentials and local secrets
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+keystore.properties
+key.properties
+.env
+.env.*
+!.env.example
