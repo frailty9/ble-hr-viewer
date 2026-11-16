@@ -1,8 +1,29 @@
-# BLE Heart Rate Viewer
+<h1 align="center">BLE Heart Rate Viewer</h1>
 
-A simple BLE heart rate client with a real-time floating overlay.
+<p align="center">
+  A simple BLE heart rate client with a real-time floating overlay.<br>
+  连接心率设备，在悬浮窗中实时查看。
+</p>
 
-一个简单的 Android 心率查看工具，通过 BLE 接收手环等设备的心率（Heart Rate，简称 HR），并支持在其他应用上方实时显示。仓库名为 `ble-hr-viewer`。
+<p align="center">
+  <a href="#构建"><img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=flat-square&amp;logo=android&amp;logoColor=white" alt="Android 8.0+"></a>
+  <a href="#构建"><img src="https://img.shields.io/badge/Kotlin-2.0.21-7F52FF?style=flat-square&amp;logo=kotlin&amp;logoColor=white" alt="Kotlin 2.0.21"></a>
+  <a href="#功能"><img src="https://img.shields.io/badge/Bluetooth-BLE-0082FC?style=flat-square&amp;logo=bluetooth&amp;logoColor=white" alt="Bluetooth Low Energy"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-D4A24C?style=flat-square" alt="License: MIT"></a>
+</p>
+
+<p align="center">
+  <a href="#功能">功能</a> ·
+  <a href="#使用">使用</a> ·
+  <a href="#构建">构建与安装</a> ·
+  <a href="#检查与发布">发布检查</a> ·
+  <a href="#权限与数据">权限与数据</a> ·
+  <a href="#许可证">许可证</a>
+</p>
+
+---
+
+一个简单的 Android 心率查看工具，通过 BLE 接收手环等设备的心率（Heart Rate，简称 HR），在主界面或其他应用上方实时显示。
 
 应用作为 GATT Notify 客户端，订阅标准 Heart Rate Service（`0x180D`）下的 Heart Rate Measurement（`0x2A37`）特征。
 
