@@ -19,6 +19,7 @@ import android.widget.TextView
 import com.example.blehr.HeartRateUiState
 import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
@@ -39,7 +40,6 @@ class HeartRateOverlayView(
 
     companion object {
         // Adjust the pill's size/layout here.
-        const val WINDOW_WIDTH_DP = 52
         const val WINDOW_MARGIN_DP = 10
         const val INITIAL_TOP_DP = 88
         const val CORNER_RADIUS_DP = 45
@@ -50,6 +50,7 @@ class HeartRateOverlayView(
         const val ICON_SIZE_DP = 16
         const val ICON_GAP_DP = 4
         const val TEXT_SIZE_SP = 17f
+        const val BPM_CHARACTER_COUNT = 3
         const val ELEVATION_DP = 4
 
         // Gesture rhythm.
@@ -57,7 +58,6 @@ class HeartRateOverlayView(
         const val DRAG_SLOP_DP = 4
     }
 
-    val windowWidthPx: Int = dp(WINDOW_WIDTH_DP)
     val windowMarginPx: Int = dp(WINDOW_MARGIN_DP)
     val initialTopPx: Int = dp(INITIAL_TOP_DP)
     val fallbackWindowHeightPx: Int =
@@ -73,6 +73,13 @@ class HeartRateOverlayView(
         text = "--"
         setTextColor(OverlayColors.DefaultFont)
     }
+    // Reserve three digits regardless of the current value or system font scale.
+    private val bpmWidthPx = ceil(
+        ('0'..'9').maxOf { bpmText.paint.measureText(it.toString()) } * BPM_CHARACTER_COUNT,
+    ).toInt()
+    val windowWidthPx: Int =
+        dp(PADDING_HORIZONTAL_DP) * 2 + dp(ICON_SIZE_DP) + dp(ICON_GAP_DP) + bpmWidthPx
+
     private val handler = Handler(Looper.getMainLooper())
     private val longPressRunnable = Runnable { onClose() }
 
@@ -102,7 +109,7 @@ class HeartRateOverlayView(
         )
         addView(
             bpmText,
-            LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+            LayoutParams(bpmWidthPx, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
                 marginStart = dp(ICON_GAP_DP)
             },
         )

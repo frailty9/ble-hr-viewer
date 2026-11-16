@@ -62,7 +62,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -73,7 +72,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
+import com.example.blehr.ble.HeartRateSample
 import com.example.blehr.ble.ScannedDevice
 import com.example.blehr.ble.SensorContact
 import com.example.blehr.overlay.HeartRateOverlayService
@@ -723,7 +724,7 @@ private fun OverlayCard(granted: Boolean, onShow: () -> Unit) {
             }
             Spacer(Modifier.height(10.dp))
             Text(
-                text = "小型悬浮窗约 ${HeartRateOverlayView.WINDOW_WIDTH_DP}dp，只显示静态心形和 BPM。"
+                text = "小型悬浮窗只显示静态心形和 BPM，数值区固定预留三位数字的宽度。"
                     + "需要“显示在其他应用上层”权限；拖动移动，长按关闭；点击不响应，避免游戏误触。",
                 style = MaterialTheme.typography.bodySmall,
                 color = Muted,
@@ -820,48 +821,34 @@ private fun AppearanceLabel(text: String) {
 
 @Composable
 private fun OverlayPreview(appearance: OverlayAppearance) {
-    val shape = RoundedCornerShape(HeartRateOverlayView.CORNER_RADIUS_DP.dp)
-    val backgroundAlpha = appearance.backgroundAlpha.coerceIn(0f, 1f)
-    val fontAlpha = appearance.fontAlpha.coerceIn(0f, 1f)
+    val previewState = remember {
+        HeartRateUiState(
+            sample = HeartRateSample(
+                bpm = 123,
+                sensorContact = SensorContact.NOT_SUPPORTED,
+                energyExpendedKj = null,
+                rrIntervalsRaw = emptyList(),
+                flags = 0,
+                raw = byteArrayOf(),
+                warnings = emptyList(),
+                receivedAtMillis = 0L,
+            ),
+        )
+    }
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Row(
-            modifier = Modifier
-                .clip(shape)
-                .background(
-                    Color(appearance.backgroundColor).copy(alpha = backgroundAlpha),
-                    shape,
-                )
-                .border(
-                    width = HeartRateOverlayView.BORDER_WIDTH_DP.dp,
-                    color = Color.White.copy(
-                        alpha = backgroundAlpha * HeartRateOverlayView.BORDER_ALPHA_FACTOR,
-                    ),
-                    shape = shape,
-                )
-                .padding(
-                    horizontal = HeartRateOverlayView.PADDING_HORIZONTAL_DP.dp,
-                    vertical = HeartRateOverlayView.PADDING_VERTICAL_DP.dp,
-                ),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Canvas(Modifier.size(HeartRateOverlayView.ICON_SIZE_DP.dp)) {
-                drawStaticHeart(
-                    Color(appearance.fontColor).copy(alpha = fontAlpha)
-                )
-            }
-            Spacer(Modifier.width(HeartRateOverlayView.ICON_GAP_DP.dp))
-            Text(
-                text = "123",
-                color = Color(appearance.fontColor).copy(alpha = fontAlpha),
-                fontSize = HeartRateOverlayView.TEXT_SIZE_SP.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
+        AndroidView(
+            factory = { context ->
+                HeartRateOverlayView(context, onClose = {}, onDrag = { _, _ -> }).apply {
+                    bindState(previewState)
+                }
+            },
+            update = { view -> view.bindAppearance(appearance) },
+        )
     }
 }
 
@@ -887,30 +874,6 @@ private fun ColorSwatchRow(
             )
         }
     }
-}
-
-private fun DrawScope.drawStaticHeart(color: Color) {
-    val centerX = size.width / 2f
-    val centerY = size.height / 2f
-    val base = size.minDimension / 38f
-    val path = Path()
-    for (index in 0..71) {
-        val angle = index * (2.0 * PI / 72.0)
-        val x = 16.0 * sin(angle) * sin(angle) * sin(angle)
-        val y = 13.0 * cos(angle) -
-            5.0 * cos(2.0 * angle) -
-            2.0 * cos(3.0 * angle) -
-            cos(4.0 * angle)
-        val px = centerX + (x * base).toFloat()
-        val py = centerY - (y * base).toFloat()
-        if (index == 0) {
-            path.moveTo(px, py)
-        } else {
-            path.lineTo(px, py)
-        }
-    }
-    path.close()
-    drawPath(path = path, color = color)
 }
 
 @Composable
