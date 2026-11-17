@@ -19,6 +19,10 @@ import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
 import androidx.annotation.RequiresApi
+import com.example.blehr.R
+import com.example.blehr.ui.UiText
+import com.example.blehr.ui.uiText
+import com.example.blehr.ui.asUiText
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
@@ -33,18 +37,18 @@ data class ScannedDevice(
 
 sealed interface BleEvent {
     data class ScanResults(val devices: List<ScannedDevice>) : BleEvent
-    data class ScanFinished(val message: String) : BleEvent
-    data class ScanFailed(val message: String) : BleEvent
-    data class Connecting(val name: String, val address: String) : BleEvent
+    data class ScanFinished(val message: UiText) : BleEvent
+    data class ScanFailed(val message: UiText) : BleEvent
+    data class Connecting(val name: String?, val address: String) : BleEvent
     data class Connected(
-        val name: String,
+        val name: String?,
         val address: String,
         val services: List<String>,
     ) : BleEvent
-    data class Disconnected(val message: String) : BleEvent
+    data class Disconnected(val message: UiText) : BleEvent
     data class Notification(val sample: HeartRateSample) : BleEvent
-    data class BadPacket(val reason: String, val rawHex: String) : BleEvent
-    data class Error(val message: String) : BleEvent
+    data class BadPacket(val reason: UiText, val rawHex: String) : BleEvent
+    data class Error(val message: UiText) : BleEvent
 }
 
 /**
@@ -97,13 +101,13 @@ class BleHeartRateClient(
     private val scanTimeout = Runnable {
         if (scanner) {
             stopScanInternal()
-            onEvent(BleEvent.ScanFinished("扫描结束"))
+            onEvent(BleEvent.ScanFinished(uiText(R.string.scan_finished)))
         }
     }
 
     private val connectTimeout = Runnable {
         if (gatt != null && !connectedEmitted) {
-            onEvent(BleEvent.Error("连接/订阅超时，请重试"))
+            onEvent(BleEvent.Error(uiText(R.string.connection_timeout)))
             closeGatt()
         }
     }
@@ -129,7 +133,7 @@ class BleHeartRateClient(
             handler.removeCallbacks(scanFlushRunnable)
             scanFlushScheduled.set(false)
             Log.w(TAG, "BLE scan failed: errorCode=$errorCode")
-            onEvent(BleEvent.ScanFailed("扫描失败，errorCode=$errorCode"))
+            onEvent(BleEvent.ScanFailed(uiText(R.string.scan_failed, errorCode)))
         }
     }
 
@@ -180,14 +184,14 @@ class BleHeartRateClient(
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 Log.d(TAG, "GATT connected, discovering services")
                 if (!gatt.discoverServices()) {
-                    onEvent(BleEvent.Error("发现服务失败，请重试"))
+                    onEvent(BleEvent.Error(uiText(R.string.discover_services_failed)))
                     closeGatt()
                 }
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 val message = if (status == BluetoothGatt.GATT_SUCCESS) {
-                    "连接已断开"
+                    uiText(R.string.connection_lost)
                 } else {
-                    "连接断开 (status=$status)"
+                    uiText(R.string.connection_lost_status, status)
                 }
                 onEvent(BleEvent.Disconnected(message))
                 closeGatt()
@@ -197,26 +201,26 @@ class BleHeartRateClient(
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
             if (gatt !== this@BleHeartRateClient.gatt) return
             if (status != BluetoothGatt.GATT_SUCCESS) {
-                onEvent(BleEvent.Error("服务发现失败 (status=$status)"))
+                onEvent(BleEvent.Error(uiText(R.string.discovery_failed_status, status)))
                 closeGatt()
                 return
             }
 
             val service = gatt.getService(HR_SERVICE_UUID)
             if (service == null) {
-                onEvent(BleEvent.Error("设备没有 0x180D 心率服务（确认心率广播已开启）"))
+                onEvent(BleEvent.Error(uiText(R.string.missing_hr_service)))
                 closeGatt()
                 return
             }
             val measurement = service.getCharacteristic(HR_MEASUREMENT_UUID)
             if (measurement == null) {
-                onEvent(BleEvent.Error("设备没有 0x2A37 心率测量特征"))
+                onEvent(BleEvent.Error(uiText(R.string.missing_hr_characteristic)))
                 closeGatt()
                 return
             }
 
             if (!gatt.setCharacteristicNotification(measurement, true)) {
-                onEvent(BleEvent.Error("无法开启心率通知"))
+                onEvent(BleEvent.Error(uiText(R.string.enable_notify_failed)))
                 closeGatt()
                 return
             }
@@ -234,7 +238,7 @@ class BleHeartRateClient(
                 gatt.writeDescriptor(cccd)
             }
             if (!started) {
-                onEvent(BleEvent.Error("订阅心率通知失败"))
+                onEvent(BleEvent.Error(uiText(R.string.subscribe_failed)))
                 closeGatt()
             }
         }
@@ -260,7 +264,7 @@ class BleHeartRateClient(
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 markConnected(gatt)
             } else {
-                onEvent(BleEvent.Error("开启通知失败 (status=$status)"))
+                onEvent(BleEvent.Error(uiText(R.string.notify_failed_status, status)))
                 closeGatt()
             }
         }
@@ -288,16 +292,16 @@ class BleHeartRateClient(
         if (scanner) return
         val adapter = adapter
         if (adapter == null) {
-            onEvent(BleEvent.Error("此设备不支持蓝牙"))
+            onEvent(BleEvent.Error(uiText(R.string.bluetooth_unsupported)))
             return
         }
         if (!adapter.isEnabled) {
-            onEvent(BleEvent.Error("蓝牙未开启，请打开系统蓝牙后重试"))
+            onEvent(BleEvent.Error(uiText(R.string.bluetooth_disabled)))
             return
         }
         val leScanner = adapter.bluetoothLeScanner
         if (leScanner == null) {
-            onEvent(BleEvent.Error("无法获取 BLE 扫描器"))
+            onEvent(BleEvent.Error(uiText(R.string.scanner_unavailable)))
             return
         }
         val settings = ScanSettings.Builder()
@@ -313,17 +317,17 @@ class BleHeartRateClient(
             Log.d(TAG, "BLE scan started (mode=$SCAN_MODE, 500ms UI batches)")
         } catch (exc: SecurityException) {
             scanner = false
-            onEvent(BleEvent.Error("缺少蓝牙扫描权限"))
+            onEvent(BleEvent.Error(uiText(R.string.scan_permission_missing)))
         } catch (exc: Exception) {
             scanner = false
-            onEvent(BleEvent.Error("扫描启动失败：${exc.message}"))
+            onEvent(BleEvent.Error(uiText(R.string.scan_start_failed, exc.message ?: uiText(R.string.unknown_error))))
         }
     }
 
     fun stopScan() {
         if (!scanner) return
         stopScanInternal()
-        onEvent(BleEvent.ScanFinished("扫描已停止"))
+        onEvent(BleEvent.ScanFinished(uiText(R.string.scan_stopped)))
     }
 
     private fun stopScanInternal() {
@@ -346,10 +350,10 @@ class BleHeartRateClient(
         connectedEmitted = false
         val adapter = adapter
         if (adapter == null || !adapter.isEnabled) {
-            onEvent(BleEvent.Error("蓝牙未开启，请打开系统蓝牙后重试"))
+            onEvent(BleEvent.Error(uiText(R.string.bluetooth_disabled)))
             return
         }
-        val name = scanned.name ?: "未知设备"
+        val name = scanned.name
         onEvent(BleEvent.Connecting(name, scanned.address))
         try {
             val newGatt = scanned.device.connectGatt(
@@ -359,13 +363,13 @@ class BleHeartRateClient(
                 BluetoothDevice.TRANSPORT_LE,
             )
             if (newGatt == null) {
-                onEvent(BleEvent.Error("无法创建 GATT 连接，请重试"))
+                onEvent(BleEvent.Error(uiText(R.string.gatt_create_failed)))
                 return
             }
             gatt = newGatt
             handler.postDelayed(connectTimeout, CONNECT_TIMEOUT_MS)
         } catch (exc: SecurityException) {
-            onEvent(BleEvent.Error("缺少蓝牙连接权限"))
+            onEvent(BleEvent.Error(uiText(R.string.connect_permission_missing)))
         }
     }
 
@@ -383,7 +387,7 @@ class BleHeartRateClient(
         if (connectedEmitted) return
         connectedEmitted = true
         handler.removeCallbacks(connectTimeout)
-        val name = safeName(gatt.device) ?: "未知设备"
+        val name = safeName(gatt.device)
         val address = try {
             gatt.device.address
         } catch (_: SecurityException) {
@@ -409,12 +413,12 @@ class BleHeartRateClient(
             onEvent(BleEvent.Notification(sample))
         } catch (exc: HeartRateParseException) {
             Log.w(TAG, "Bad HR packet: ${exc.reason} raw=${HeartRateParser.hex(exc.raw)}")
-            onEvent(BleEvent.BadPacket(exc.reason, HeartRateParser.hex(exc.raw)))
+            onEvent(BleEvent.BadPacket(exc.reason.asUiText(), HeartRateParser.hex(exc.raw)))
         } catch (exc: Exception) {
             Log.w(TAG, "HR packet parse failure", exc)
             onEvent(
                 BleEvent.BadPacket(
-                    exc.message ?: "unknown parse failure",
+                    uiText(R.string.parse_failure, exc.message ?: uiText(R.string.unknown_error)),
                     HeartRateParser.hex(value),
                 )
             )

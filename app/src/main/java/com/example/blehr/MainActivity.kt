@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.blehr.ui.theme.BleHrTheme
@@ -126,25 +127,23 @@ private fun PermissionGate(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "需要蓝牙权限",
+            text = stringResource(R.string.bluetooth_permission_title),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground,
         )
         Spacer(Modifier.height(12.dp))
         Text(
-            text = "Android 12 及以上需要“附近的设备”权限才能扫描并连接手环。"
-                + "Android 11 及以下使用定位权限进行 BLE 扫描。"
-                + "另会请求通知权限，用于悬浮窗的前台服务通知；拒绝通知不影响主界面。",
+            text = stringResource(R.string.bluetooth_permission_description),
             style = MaterialTheme.typography.bodyMedium,
             color = Muted,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(24.dp))
         Button(onClick = onRequest) {
-            Text("授予权限")
+            Text(stringResource(R.string.grant_permission))
         }
         TextButton(onClick = onOpenSettings) {
-            Text("打开应用设置")
+            Text(stringResource(R.string.open_app_settings))
         }
     }
 }

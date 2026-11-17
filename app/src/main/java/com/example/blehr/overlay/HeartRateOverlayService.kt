@@ -1,5 +1,6 @@
 package com.example.blehr.overlay
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -7,6 +8,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.os.Build
@@ -78,7 +80,7 @@ class HeartRateOverlayService : Service() {
             return START_NOT_STICKY
         }
         if (!Settings.canDrawOverlays(this)) {
-            Toast.makeText(this, "未授予悬浮窗权限", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.overlay_permission_denied), Toast.LENGTH_SHORT).show()
             stopSelf()
             return START_NOT_STICKY
         }
@@ -90,6 +92,12 @@ class HeartRateOverlayService : Service() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        createNotificationChannel()
+        if (foregroundStarted && (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
+        ) {
+            getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification())
+        }
         val view = overlay ?: return
         val layout = params ?: return
         clampToScreen(view, layout)
@@ -123,7 +131,7 @@ class HeartRateOverlayService : Service() {
             true
         } catch (exc: Exception) {
             Log.e(TAG, "startForeground failed", exc)
-            Toast.makeText(this, "无法启动悬浮窗服务：${exc.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.overlay_service_failed, exc.message ?: getString(R.string.unknown_error)), Toast.LENGTH_SHORT).show()
             false
         }
     }
@@ -156,10 +164,10 @@ class HeartRateOverlayService : Service() {
             params = layout
             view.bindAppearance(settings.appearance.value)
             view.bindState(repository.ui.value)
-            Toast.makeText(this, "悬浮窗已开启：拖动移动，长按关闭", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.overlay_gestures), Toast.LENGTH_SHORT).show()
         } catch (exc: Exception) {
             Log.e(TAG, "add overlay view failed", exc)
-            Toast.makeText(this, "悬浮窗添加失败：${exc.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.overlay_add_failed, exc.message ?: getString(R.string.unknown_error)), Toast.LENGTH_SHORT).show()
             stopSelf()
         }
     }
@@ -194,17 +202,16 @@ class HeartRateOverlayService : Service() {
 
     private fun createNotificationChannel() {
         val manager = getSystemService(NotificationManager::class.java)
-        if (manager.getNotificationChannel(CHANNEL_ID) == null) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "心率悬浮窗",
-                NotificationManager.IMPORTANCE_LOW,
-            ).apply {
-                setShowBadge(false)
-                description = "保持 BLE 心率连接并显示悬浮窗"
-            }
-            manager.createNotificationChannel(channel)
+        // Re-register to update translated names while preserving the user's channel settings.
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            getString(R.string.overlay_channel_name),
+            NotificationManager.IMPORTANCE_LOW,
+        ).apply {
+            setShowBadge(false)
+            description = getString(R.string.overlay_channel_description)
         }
+        manager.createNotificationChannel(channel)
     }
 
     private fun buildNotification(): android.app.Notification {
@@ -223,12 +230,12 @@ class HeartRateOverlayService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_heart)
             .setContentTitle(getString(R.string.app_name))
-            .setContentText("长按悬浮窗或在此关闭")
+            .setContentText(getString(R.string.overlay_notification_text))
             .setContentIntent(openIntent)
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setPriority(NotificationCompat.PRIORITY_LOW)
-            .addAction(0, "关闭悬浮窗", closeIntent)
+            .addAction(0, getString(R.string.overlay_close), closeIntent)
             .build()
     }
 }

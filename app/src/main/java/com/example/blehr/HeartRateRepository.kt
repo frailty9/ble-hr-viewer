@@ -1,6 +1,8 @@
 package com.example.blehr
 
 import android.content.Context
+import com.example.blehr.ui.UiText
+import com.example.blehr.ui.uiText
 import com.example.blehr.ble.BleEvent
 import com.example.blehr.ble.BleHeartRateClient
 import com.example.blehr.ble.HeartRateSample
@@ -21,7 +23,7 @@ enum class ConnectionPhase {
 }
 
 data class ErrorEntry(
-    val reason: String,
+    val reason: UiText,
     val rawHex: String,
     val atMillis: Long,
 )
@@ -32,7 +34,7 @@ data class HeartRateUiState(
     val connection: ConnectionPhase = ConnectionPhase.IDLE,
     val connectedName: String? = null,
     val connectedAddress: String? = null,
-    val status: String = "点击“扫描 BLE”搜索手环",
+    val status: UiText = uiText(R.string.status_idle),
     val sample: HeartRateSample? = null,
     val history: List<Int> = emptyList(),
     val lastRawHex: String = "",
@@ -68,7 +70,7 @@ class HeartRateRepository private constructor(context: Context) {
             it.copy(
                 scanning = true,
                 devices = emptyList(),
-                status = "正在扫描附近 BLE 设备…",
+                status = uiText(R.string.status_scanning),
                 connection = if (it.connection == ConnectionPhase.CONNECTED) {
                     it.connection
                 } else {
@@ -90,7 +92,7 @@ class HeartRateRepository private constructor(context: Context) {
                 connection = ConnectionPhase.CONNECTING,
                 connectedName = device.name,
                 connectedAddress = device.address,
-                status = "正在连接 ${device.name ?: device.address}…",
+                status = uiText(R.string.status_connecting, device.name ?: device.address),
                 sample = null,
                 history = emptyList(),
                 lastRawHex = "",
@@ -104,7 +106,7 @@ class HeartRateRepository private constructor(context: Context) {
         _ui.update {
             it.copy(
                 connection = ConnectionPhase.DISCONNECTED,
-                status = "已断开连接",
+                status = uiText(R.string.status_disconnected),
             )
         }
     }
@@ -135,7 +137,7 @@ class HeartRateRepository private constructor(context: Context) {
                         it.connection
                     },
                     status = if (it.connection == ConnectionPhase.CONNECTED) {
-                        "已连接，等待心率通知"
+                        uiText(R.string.status_waiting)
                     } else {
                         event.message
                     },
@@ -155,7 +157,7 @@ class HeartRateRepository private constructor(context: Context) {
                     connection = ConnectionPhase.CONNECTING,
                     connectedName = event.name,
                     connectedAddress = event.address,
-                    status = "正在连接 ${event.name}…",
+                    status = uiText(R.string.status_connecting, event.name ?: uiText(R.string.unknown_device)),
                 )
             }
 
@@ -164,7 +166,7 @@ class HeartRateRepository private constructor(context: Context) {
                     connection = ConnectionPhase.CONNECTED,
                     connectedName = event.name,
                     connectedAddress = event.address,
-                    status = "已订阅心率通知，等待数据（未佩戴时可能没有通知）",
+                    status = uiText(R.string.status_subscribed),
                     sample = null,
                     history = emptyList(),
                     lastRawHex = "",
@@ -174,7 +176,7 @@ class HeartRateRepository private constructor(context: Context) {
             is BleEvent.Disconnected -> _ui.update {
                 it.copy(
                     connection = ConnectionPhase.DISCONNECTED,
-                    status = "${event.message}，可重新连接",
+                    status = uiText(R.string.status_reconnect, event.message),
                 )
             }
 
@@ -197,7 +199,7 @@ class HeartRateRepository private constructor(context: Context) {
                     parseErrorCount = state.parseErrorCount + 1,
                     errors = (listOf(entry) + state.errors).take(5),
                     lastRawHex = event.rawHex,
-                    status = "收到无法解析的包，已忽略并继续监听",
+                    status = uiText(R.string.status_bad_packet),
                 )
             }
 
@@ -211,10 +213,10 @@ class HeartRateRepository private constructor(context: Context) {
         }
     }
 
-    private fun statusFor(sample: HeartRateSample): String = when {
-        sample.sensorContact == SensorContact.NOT_DETECTED -> "未佩戴，心率可能无效"
-        sample.bpm == 0 -> "收到 0 bpm（未佩戴/无脉搏）"
-        sample.warnings.isNotEmpty() -> "接收中 · 告警 ${sample.warnings.size}"
-        else -> "接收中"
+    private fun statusFor(sample: HeartRateSample): UiText = when {
+        sample.sensorContact == SensorContact.NOT_DETECTED -> uiText(R.string.status_no_contact)
+        sample.bpm == 0 -> uiText(R.string.status_zero_bpm)
+        sample.warnings.isNotEmpty() -> uiText(R.string.status_warnings, sample.warnings.size)
+        else -> uiText(R.string.status_receiving)
     }
 }

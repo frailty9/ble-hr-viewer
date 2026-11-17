@@ -1,5 +1,6 @@
 package com.example.blehr
 
+import com.example.blehr.ble.DiagnosticCode
 import com.example.blehr.ble.HeartRateParseException
 import com.example.blehr.ble.HeartRateParser
 import com.example.blehr.ble.SensorContact
@@ -23,7 +24,8 @@ class HeartRateParserTest {
         val error = assertThrows(HeartRateParseException::class.java) {
             HeartRateParser.parse(byteArrayOf(0x00))
         }
-        assertTrue(error.reason.contains("truncated"))
+        assertEquals(DiagnosticCode.TRUNCATED_HEART_RATE, error.reason.code)
+        assertEquals(listOf(2, 1), error.reason.arguments)
     }
 
     @Test
@@ -40,7 +42,7 @@ class HeartRateParserTest {
     fun uint16ValueIsLittleEndian() {
         val sample = HeartRateParser.parse(byteArrayOf(0x01, 0x2C, 0x01))
         assertEquals(300, sample.bpm)
-        assertTrue(sample.warnings.any { it.contains("implausible") })
+        assertTrue(sample.warnings.any { it.code == DiagnosticCode.IMPLAUSIBLE_HEART_RATE && it.arguments == listOf(300) })
     }
 
     @Test
@@ -59,7 +61,7 @@ class HeartRateParserTest {
     fun reservedContactCombinationIsWarned() {
         val sample = HeartRateParser.parse(byteArrayOf(0x02, 80))
         assertEquals(SensorContact.NOT_SUPPORTED, sample.sensorContact)
-        assertTrue(sample.warnings.any { it.contains("0b01") })
+        assertTrue(sample.warnings.any { it.code == DiagnosticCode.RESERVED_CONTACT })
     }
 
     @Test
@@ -89,8 +91,8 @@ class HeartRateParserTest {
         val sample = HeartRateParser.parse(byteArrayOf(0x10, 60, 0x01))
         assertEquals(60, sample.bpm)
         assertTrue(sample.rrIntervalsRaw.isEmpty())
-        assertTrue(sample.warnings.any { it.contains("no complete RR") })
-        assertTrue(sample.warnings.any { it.contains("odd trailing byte") })
+        assertTrue(sample.warnings.any { it.code == DiagnosticCode.MISSING_RR })
+        assertTrue(sample.warnings.any { it.code == DiagnosticCode.ODD_RR_BYTE })
     }
 
     @Test
@@ -99,20 +101,20 @@ class HeartRateParserTest {
             byteArrayOf(0x00, 60, 0xAA.toByte(), 0xBB.toByte())
         )
         assertEquals(60, sample.bpm)
-        assertTrue(sample.warnings.any { it.contains("2 trailing") })
+        assertTrue(sample.warnings.any { it.code == DiagnosticCode.TRAILING_BYTES && it.arguments == listOf(2) })
     }
 
     @Test
     fun reservedFlagBitsAreWarned() {
         val sample = HeartRateParser.parse(byteArrayOf(0x80.toByte(), 60))
-        assertTrue(sample.warnings.any { it.contains("reserved flag") })
+        assertTrue(sample.warnings.any { it.code == DiagnosticCode.RESERVED_FLAGS && it.arguments == listOf(0x80) })
     }
 
     @Test
     fun zeroBpmIsAcceptedWithWarning() {
         val sample = HeartRateParser.parse(byteArrayOf(0x06, 0x00))
         assertEquals(0, sample.bpm)
-        assertTrue(sample.warnings.any { it.contains("0 bpm") })
+        assertTrue(sample.warnings.any { it.code == DiagnosticCode.ZERO_HEART_RATE })
     }
 
     @Test

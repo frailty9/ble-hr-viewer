@@ -8,6 +8,26 @@ enum class SensorContact {
     DETECTED,
 }
 
+enum class DiagnosticCode {
+    EMPTY_NOTIFICATION,
+    TRUNCATED_HEART_RATE,
+    RESERVED_CONTACT,
+    TRUNCATED_ENERGY,
+    UNKNOWN_ENERGY,
+    MISSING_RR,
+    ODD_RR_BYTE,
+    TRAILING_BYTES,
+    RESERVED_FLAGS,
+    IMPLAUSIBLE_HEART_RATE,
+    ZERO_HEART_RATE,
+}
+
+/** Structured parser output; no Android dependencies or pretranslated text. */
+data class HeartRateDiagnostic(
+    val code: DiagnosticCode,
+    val arguments: List<Any> = emptyList(),
+)
+
 data class HeartRateSample(
     val bpm: Int,
     val sensorContact: SensorContact,
@@ -15,7 +35,7 @@ data class HeartRateSample(
     val rrIntervalsRaw: List<Int>,
     val flags: Int,
     val raw: ByteArray,
-    val warnings: List<String>,
+    val warnings: List<HeartRateDiagnostic>,
     val receivedAtMillis: Long,
 ) {
     val rrIntervalsMs: List<Double>
@@ -26,9 +46,9 @@ data class HeartRateSample(
 }
 
 class HeartRateParseException(
-    val reason: String,
+    val reason: HeartRateDiagnostic,
     val raw: ByteArray,
-) : Exception(reason)
+) : Exception(reason.toString())
 
 /**
  * Decoder for the Bluetooth SIG Heart Rate Measurement characteristic (0x2A37).
@@ -44,18 +64,18 @@ object HeartRateParser {
         receivedAtMillis: Long = System.currentTimeMillis(),
     ): HeartRateSample {
         if (payload.isEmpty()) {
-            throw HeartRateParseException("empty notification", payload)
+            throw HeartRateParseException(HeartRateDiagnostic(DiagnosticCode.EMPTY_NOTIFICATION), payload)
         }
 
         val flags = payload[0].toInt() and 0xFF
-        val warnings = mutableListOf<String>()
+        val warnings = mutableListOf<HeartRateDiagnostic>()
         var index = 1
 
         // bit 0: 0 = uint8, 1 = uint16 little-endian
         val valueWidth = if (flags and 0x01 != 0) 2 else 1
         if (payload.size < index + valueWidth) {
             throw HeartRateParseException(
-                "truncated heart rate value: need ${index + valueWidth} bytes, got ${payload.size}",
+                HeartRateDiagnostic(DiagnosticCode.TRUNCATED_HEART_RATE, listOf(index + valueWidth, payload.size)),
                 payload,
             )
         }
@@ -73,7 +93,7 @@ object HeartRateParser {
             else -> SensorContact.DETECTED
         }
         if (contactBits == 1) {
-            warnings += "sensor-contact bits 0b01 treated as not supported"
+            warnings += HeartRateDiagnostic(DiagnosticCode.RESERVED_CONTACT)
         }
 
         // bit 3: energy expended, uint16 kilojoules
@@ -81,14 +101,14 @@ object HeartRateParser {
         if (flags and 0x08 != 0) {
             if (payload.size < index + 2) {
                 throw HeartRateParseException(
-                    "energy-expended flag set but only ${payload.size - index} byte(s) left",
+                    HeartRateDiagnostic(DiagnosticCode.TRUNCATED_ENERGY, listOf(payload.size - index)),
                     payload,
                 )
             }
             energy = readLe16(payload, index)
             index += 2
             if (energy == 0xFFFF) {
-                warnings += "energy expended is 0xFFFF (unknown)"
+                warnings += HeartRateDiagnostic(DiagnosticCode.UNKNOWN_ENERGY)
             }
         }
 
@@ -98,31 +118,31 @@ object HeartRateParser {
             val remaining = payload.size - index
             val wholeIntervals = remaining / 2
             if (wholeIntervals == 0) {
-                warnings += "RR-interval flag set but no complete RR value present"
+                warnings += HeartRateDiagnostic(DiagnosticCode.MISSING_RR)
             }
             repeat(wholeIntervals) {
                 rrValues += readLe16(payload, index)
                 index += 2
             }
             if (remaining % 2 != 0) {
-                warnings += "odd trailing byte after RR intervals"
+                warnings += HeartRateDiagnostic(DiagnosticCode.ODD_RR_BYTE)
                 index = payload.size
             }
         }
 
         if (index < payload.size) {
-            warnings += "${payload.size - index} trailing byte(s) ignored"
+            warnings += HeartRateDiagnostic(DiagnosticCode.TRAILING_BYTES, listOf(payload.size - index))
         }
 
         val reserved = flags and 0xE0
         if (reserved != 0) {
-            warnings += "reserved flag bits set: 0x%02x".format(Locale.ROOT, reserved)
+            warnings += HeartRateDiagnostic(DiagnosticCode.RESERVED_FLAGS, listOf(reserved))
         }
         if (bpm > 250) {
-            warnings += "implausible heart rate: $bpm bpm"
+            warnings += HeartRateDiagnostic(DiagnosticCode.IMPLAUSIBLE_HEART_RATE, listOf(bpm))
         }
         if (bpm == 0) {
-            warnings += "heart rate is 0 bpm (no pulse detected)"
+            warnings += HeartRateDiagnostic(DiagnosticCode.ZERO_HEART_RATE)
         }
 
         return HeartRateSample(

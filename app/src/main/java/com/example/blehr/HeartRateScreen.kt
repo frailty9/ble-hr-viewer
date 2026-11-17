@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -65,7 +67,9 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -82,6 +86,7 @@ import com.example.blehr.overlay.HeartRateOverlayView
 import com.example.blehr.overlay.OverlayAppearance
 import com.example.blehr.overlay.OverlayColors
 import com.example.blehr.overlay.OverlaySettingsStore
+import com.example.blehr.ui.asUiText
 import com.example.blehr.ui.theme.Accent
 import com.example.blehr.ui.theme.GridLine
 import com.example.blehr.ui.theme.Ink
@@ -115,16 +120,16 @@ fun HeartRateScreen(viewModel: HeartRateViewModel) {
         overlayGranted = Settings.canDrawOverlays(context)
         if (overlayPending && overlayGranted) {
             HeartRateOverlayService.show(context)
-            Toast.makeText(context, "悬浮窗已开启", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.overlay_enabled, Toast.LENGTH_SHORT).show()
         } else if (overlayPending) {
-            Toast.makeText(context, "未授予悬浮窗权限", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.overlay_permission_denied, Toast.LENGTH_SHORT).show()
         }
         overlayPending = false
     }
     val showOverlay: () -> Unit = {
         if (Settings.canDrawOverlays(context)) {
             HeartRateOverlayService.show(context)
-            Toast.makeText(context, "悬浮窗已开启，可拖动，点 × 关闭", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.overlay_gestures, Toast.LENGTH_SHORT).show()
         } else {
             overlayPending = true
             overlayPermissionLauncher.launch(
@@ -221,25 +226,27 @@ private fun AppHeader(state: HeartRateUiState) {
                 color = Ink,
             )
             Text(
-                text = "接收 BLE 心率，支持实时悬浮窗",
+                text = stringResource(R.string.app_tagline),
                 style = MaterialTheme.typography.bodySmall,
                 color = Muted,
             )
         }
         val (label, color) = when (state.connection) {
-            ConnectionPhase.SCANNING -> "扫描中" to WarnAmber
-            ConnectionPhase.CONNECTING -> "连接中" to WarnAmber
-            ConnectionPhase.CONNECTED -> "已连接" to OkGreen
-            ConnectionPhase.DISCONNECTED -> "已断开" to Muted
-            ConnectionPhase.ERROR -> "错误" to ErrorRed
-            ConnectionPhase.IDLE -> "未连接" to Muted
+            ConnectionPhase.SCANNING -> stringResource(R.string.phase_scanning) to WarnAmber
+            ConnectionPhase.CONNECTING -> stringResource(R.string.phase_connecting) to WarnAmber
+            ConnectionPhase.CONNECTED -> stringResource(R.string.phase_connected) to OkGreen
+            ConnectionPhase.DISCONNECTED -> stringResource(R.string.phase_disconnected) to Muted
+            ConnectionPhase.ERROR -> stringResource(R.string.phase_error) to ErrorRed
+            ConnectionPhase.IDLE -> stringResource(R.string.phase_idle) to Muted
         }
         StatusChip(label, color)
     }
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun BpmCard(state: HeartRateUiState) {
+    val context = LocalContext.current
     val sample = state.sample
     val bpm = sample?.bpm ?: 0
     val contact = sample?.sensorContact ?: SensorContact.NOT_SUPPORTED
@@ -252,18 +259,18 @@ private fun BpmCard(state: HeartRateUiState) {
     }
     val deviceLine = when {
         state.connection == ConnectionPhase.CONNECTED ->
-            "${state.connectedName ?: "未知设备"} · ${state.connectedAddress ?: "--"}"
-        state.connection == ConnectionPhase.CONNECTING -> "正在连接…"
-        state.connection == ConnectionPhase.SCANNING -> "正在扫描附近设备…"
-        state.connection == ConnectionPhase.ERROR -> "连接异常，请重试"
-        else -> "未连接手环"
+            "${state.connectedName ?: stringResource(R.string.unknown_device)} · ${state.connectedAddress ?: "--"}"
+        state.connection == ConnectionPhase.CONNECTING -> stringResource(R.string.device_connecting)
+        state.connection == ConnectionPhase.SCANNING -> stringResource(R.string.device_scanning)
+        state.connection == ConnectionPhase.ERROR -> stringResource(R.string.device_connection_error)
+        else -> stringResource(R.string.device_not_connected)
     }
     val contactText = when {
-        !hasSample -> "佩戴: --"
-        contact == SensorContact.NOT_DETECTED -> "佩戴: 未检测"
-        bpm == 0 -> "无脉搏信号"
-        contact == SensorContact.DETECTED -> "佩戴: 已检测"
-        else -> "佩戴: 不支持检测"
+        !hasSample -> stringResource(R.string.contact_unknown)
+        contact == SensorContact.NOT_DETECTED -> stringResource(R.string.contact_not_detected)
+        bpm == 0 -> stringResource(R.string.no_pulse)
+        contact == SensorContact.DETECTED -> stringResource(R.string.contact_detected)
+        else -> stringResource(R.string.contact_unsupported)
     }
     val contactColor = when {
         !hasSample -> Muted
@@ -313,14 +320,20 @@ private fun BpmCard(state: HeartRateUiState) {
                 }
             }
             Spacer(Modifier.height(14.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 StatusChip(contactText, contactColor)
                 StatusChip(rrText, Muted)
             }
             if (sample != null && sample.warnings.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "告警: " + sample.warnings.joinToString("; "),
+                    text = stringResource(
+                        R.string.warnings_summary,
+                        sample.warnings.joinToString("; ") { it.asUiText().resolve(context) },
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = WarnAmber,
                 )
@@ -329,9 +342,9 @@ private fun BpmCard(state: HeartRateUiState) {
                 Spacer(Modifier.height(10.dp))
                 Text(
                     text = if (bpm == 0) {
-                        "未检测到脉搏（0 BPM）。实测手环未佩戴时仍可能报告“已检测到佩戴”，请以 0 BPM 为准。原始包仍会被记录。"
+                        stringResource(R.string.no_pulse_description)
                     } else {
-                        "手环报告未检测到佩戴，心率数据可能无效。"
+                        stringResource(R.string.no_contact_description)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = WarnAmber,
@@ -339,7 +352,7 @@ private fun BpmCard(state: HeartRateUiState) {
             }
             Spacer(Modifier.height(10.dp))
             Text(
-                text = state.status,
+                text = state.status.asString(),
                 style = MaterialTheme.typography.bodySmall,
                 color = if (state.connection == ConnectionPhase.ERROR) ErrorRed else Muted,
             )
@@ -408,7 +421,7 @@ private fun TrendCard(state: HeartRateUiState) {
         Column(Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "心率趋势",
+                    text = stringResource(R.string.trend_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = Ink,
                 )
@@ -429,7 +442,7 @@ private fun TrendCard(state: HeartRateUiState) {
                 Sparkline(history, Modifier.fillMaxSize())
                 if (history.size < 2) {
                     Text(
-                        text = "等待更多心率通知…",
+                        text = stringResource(R.string.trend_waiting),
                         modifier = Modifier.align(Alignment.Center),
                         style = MaterialTheme.typography.bodySmall,
                         color = Muted,
@@ -439,14 +452,14 @@ private fun TrendCard(state: HeartRateUiState) {
             Spacer(Modifier.height(8.dp))
             Row {
                 Text(
-                    text = if (history.isEmpty()) "范围 --" else
-                        "范围 ${history.minOrNull() ?: 0} – ${history.maxOrNull() ?: 0} BPM",
+                    text = if (history.isEmpty()) stringResource(R.string.trend_range_empty) else
+                        stringResource(R.string.trend_range, history.minOrNull() ?: 0, history.maxOrNull() ?: 0),
                     style = MaterialTheme.typography.labelSmall,
                     color = Muted,
                 )
                 Spacer(Modifier.weight(1f))
                 Text(
-                    text = "最近 ${history.size} 个通知",
+                    text = pluralStringResource(R.plurals.recent_notifications, history.size, history.size),
                     style = MaterialTheme.typography.labelSmall,
                     color = Muted,
                 )
@@ -520,13 +533,13 @@ private fun DeviceCard(
         Column(Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "附近设备",
+                    text = stringResource(R.string.nearby_devices),
                     style = MaterialTheme.typography.titleMedium,
                     color = Ink,
                 )
                 Spacer(Modifier.weight(1f))
                 if (state.scanning) {
-                    StatusChip("扫描中", WarnAmber)
+                    StatusChip(stringResource(R.string.phase_scanning), WarnAmber)
                 }
             }
             Spacer(Modifier.height(10.dp))
@@ -537,18 +550,18 @@ private fun DeviceCard(
                 Button(onClick = {
                     if (state.scanning) viewModel.stopScan() else viewModel.startScan()
                 }) {
-                    Text(if (state.scanning) "停止扫描" else "扫描 BLE")
+                    Text(if (state.scanning) stringResource(R.string.stop_scan) else stringResource(R.string.scan_ble))
                 }
                 if (state.connection == ConnectionPhase.CONNECTED ||
                     state.connection == ConnectionPhase.CONNECTING
                 ) {
                     OutlinedButton(onClick = viewModel::disconnect) {
-                        Text("断开")
+                        Text(stringResource(R.string.disconnect))
                     }
                 }
             }
             TextButton(onClick = openBluetoothSettings) {
-                Text("打开蓝牙设置")
+                Text(stringResource(R.string.open_bluetooth_settings))
             }
             if (state.scanning) {
                 Spacer(Modifier.height(6.dp))
@@ -571,13 +584,13 @@ private fun DeviceCard(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            text = if (state.scanning) "正在搜索…" else "未发现设备",
+                            text = if (state.scanning) stringResource(R.string.searching) else stringResource(R.string.no_devices),
                             style = MaterialTheme.typography.bodyMedium,
                             color = Ink,
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = "确认手机蓝牙已打开，手环已开启心率广播",
+                            text = stringResource(R.string.scan_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = Muted,
                             textAlign = TextAlign.Center,
@@ -621,7 +634,7 @@ private fun DeviceRow(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = device.name ?: "未命名设备",
+                    text = device.name ?: stringResource(R.string.unnamed_device),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = Ink,
@@ -658,7 +671,7 @@ private fun PacketCard(state: HeartRateUiState) {
         Column(Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "最近原始包",
+                    text = stringResource(R.string.packet_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = Ink,
                 )
@@ -680,19 +693,18 @@ private fun PacketCard(state: HeartRateUiState) {
             if (sample != null) {
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = buildString {
-                        append("flags=0x%02x".format(Locale.ROOT, sample.flags))
-                        append(" · ")
-                        append("energy=")
-                        append(sample.energyExpendedKj?.let { "$it kJ" } ?: "--")
-                    },
+                    text = stringResource(
+                        R.string.packet_metadata,
+                        sample.flags,
+                        sample.energyExpendedKj?.let { "$it kJ" } ?: "--",
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = FontFamily.Monospace,
                     color = Muted,
                 )
                 sample.warnings.forEach { warning ->
                     Text(
-                        text = "! $warning",
+                        text = "! ${warning.asUiText().asString()}",
                         style = MaterialTheme.typography.labelSmall,
                         color = WarnAmber,
                     )
@@ -712,32 +724,31 @@ private fun OverlayCard(granted: Boolean, onShow: () -> Unit) {
         Column(Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "悬浮窗心率",
+                    text = stringResource(R.string.overlay_title),
+                    modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium,
                     color = Ink,
                 )
-                Spacer(Modifier.weight(1f))
                 StatusChip(
-                    text = if (granted) "权限已授予" else "需授权",
+                    text = if (granted) stringResource(R.string.permission_granted) else stringResource(R.string.permission_required),
                     color = if (granted) OkGreen else WarnAmber,
                 )
             }
             Spacer(Modifier.height(10.dp))
             Text(
-                text = "小型悬浮窗只显示静态心形和 BPM，数值区固定预留三位数字的宽度。"
-                    + "需要“显示在其他应用上层”权限；拖动移动，长按关闭；点击不响应，避免游戏误触。",
+                text = stringResource(R.string.overlay_description),
                 style = MaterialTheme.typography.bodySmall,
                 color = Muted,
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "建议先连接手环再开启；未连接或未佩戴时显示 -- / 0。",
+                text = stringResource(R.string.overlay_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = Muted,
             )
             Spacer(Modifier.height(10.dp))
             Button(onClick = onShow) {
-                Text(if (granted) "开启悬浮窗" else "授权并开启")
+                Text(if (granted) stringResource(R.string.overlay_show) else stringResource(R.string.overlay_allow_show))
             }
         }
     }
@@ -757,19 +768,19 @@ private fun OverlayAppearanceCard() {
         Column(Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "悬浮窗外观",
+                    text = stringResource(R.string.overlay_appearance),
                     style = MaterialTheme.typography.titleMedium,
                     color = Ink,
                 )
                 Spacer(Modifier.weight(1f))
                 TextButton(onClick = store::reset) {
-                    Text("恢复默认")
+                    Text(stringResource(R.string.reset_defaults))
                 }
             }
             OverlayPreview(appearance)
             Spacer(Modifier.height(10.dp))
 
-            AppearanceLabel("背景颜色")
+            AppearanceLabel(stringResource(R.string.background_color))
             Spacer(Modifier.height(6.dp))
             ColorSwatchRow(
                 selected = appearance.backgroundColor,
@@ -779,7 +790,7 @@ private fun OverlayAppearanceCard() {
 
             Spacer(Modifier.height(10.dp))
             AppearanceLabel(
-                "背景/边框透明度 ${(appearance.backgroundAlpha * 100).roundToInt()}%"
+                stringResource(R.string.background_opacity, (appearance.backgroundAlpha * 100).roundToInt())
             )
             Slider(
                 value = appearance.backgroundAlpha,
@@ -788,7 +799,7 @@ private fun OverlayAppearanceCard() {
                 valueRange = 0f..1f,
             )
 
-            AppearanceLabel("字体颜色（同时应用到心形）")
+            AppearanceLabel(stringResource(R.string.font_color))
             Spacer(Modifier.height(6.dp))
             ColorSwatchRow(
                 selected = appearance.fontColor,
@@ -798,7 +809,7 @@ private fun OverlayAppearanceCard() {
 
             Spacer(Modifier.height(10.dp))
             AppearanceLabel(
-                "字体透明度 ${(appearance.fontAlpha * 100).roundToInt()}%"
+                stringResource(R.string.font_opacity, (appearance.fontAlpha * 100).roundToInt())
             )
             Slider(
                 value = appearance.fontAlpha,
@@ -878,7 +889,8 @@ private fun ColorSwatchRow(
 
 @Composable
 private fun ErrorCard(state: HeartRateUiState) {
-    val formatter = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
+    val locale = LocalConfiguration.current.locales[0]
+    val formatter = remember(locale) { SimpleDateFormat("HH:mm:ss", locale) }
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -887,7 +899,7 @@ private fun ErrorCard(state: HeartRateUiState) {
         Column(Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "错误包",
+                    text = stringResource(R.string.error_packets),
                     style = MaterialTheme.typography.titleMedium,
                     color = Ink,
                 )
@@ -900,19 +912,19 @@ private fun ErrorCard(state: HeartRateUiState) {
             Spacer(Modifier.height(8.dp))
             if (state.errors.isEmpty()) {
                 Text(
-                    text = "暂未收到无法解析的通知包。",
+                    text = stringResource(R.string.no_error_packets),
                     style = MaterialTheme.typography.bodySmall,
                     color = Muted,
                 )
             } else {
                 state.errors.forEach { entry ->
                     Text(
-                        text = "${formatter.format(Date(entry.atMillis))}  ${entry.reason}",
+                        text = "${formatter.format(Date(entry.atMillis))}  ${entry.reason.asString()}",
                         style = MaterialTheme.typography.bodySmall,
                         color = ErrorRed,
                     )
                     Text(
-                        text = "raw ${entry.rawHex}",
+                        text = stringResource(R.string.packet_raw, entry.rawHex),
                         style = MaterialTheme.typography.labelSmall,
                         fontFamily = FontFamily.Monospace,
                         color = Muted,
@@ -935,15 +947,15 @@ private fun HelpCard() {
     ) {
         Column(Modifier.padding(18.dp)) {
             Text(
-                text = "使用提示",
+                text = stringResource(R.string.help_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = Ink,
             )
             Spacer(Modifier.height(8.dp))
-            DetailLine("1. 手环：设置 → 心率广播（运动心率广播）→ 开启。")
-            DetailLine("2. 本 App 只接收标准 GATT 心率服务 0x180D / 0x2A37。")
-            DetailLine("3. 未佩戴时可能收到 0 BPM、接触状态“未检测”或长时间无通知。")
-            DetailLine("4. 错误包会显示在“错误包”卡片中，不会中断监听。")
+            DetailLine(stringResource(R.string.help_enable_sharing))
+            DetailLine(stringResource(R.string.help_standard_service))
+            DetailLine(stringResource(R.string.help_no_contact))
+            DetailLine(stringResource(R.string.help_bad_packets))
         }
     }
 }
