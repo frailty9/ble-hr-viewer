@@ -23,14 +23,11 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -40,7 +37,6 @@ import com.example.blehr.ble.SensorContact
 import com.example.blehr.data.heartrate.HeartRateState
 import com.example.blehr.data.settings.OverlayAppearance
 import com.example.blehr.data.settings.OverlayColors
-import com.example.blehr.data.settings.SettingsRepository
 import com.example.blehr.overlay.HeartRateOverlayView
 import com.example.blehr.ui.theme.Accent
 import com.example.blehr.ui.theme.Ink
@@ -48,11 +44,14 @@ import com.example.blehr.ui.theme.Muted
 import kotlin.math.roundToInt
 
 @Composable
-internal fun OverlayAppearanceCard() {
-    val context = LocalContext.current
-    val store = remember { SettingsRepository.get(context) }
-    val appearance by store.appearance.collectAsState()
-
+internal fun OverlayAppearanceCard(
+    appearance: OverlayAppearance,
+    onBackgroundColorChanged: (Int) -> Unit,
+    onBackgroundAlphaChanged: (Float) -> Unit,
+    onFontColorChanged: (Int) -> Unit,
+    onFontAlphaChanged: (Float) -> Unit,
+    onReset: () -> Unit,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -66,7 +65,7 @@ internal fun OverlayAppearanceCard() {
                     color = Ink,
                 )
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = store::reset) {
+                TextButton(onClick = onReset) {
                     Text(stringResource(R.string.reset_defaults))
                 }
             }
@@ -78,7 +77,7 @@ internal fun OverlayAppearanceCard() {
             ColorSwatchRow(
                 selected = appearance.backgroundColor,
                 colors = OverlayColors.BackgroundPresets,
-                onSelect = store::setBackgroundColor,
+                onSelect = onBackgroundColorChanged,
             )
 
             Spacer(Modifier.height(10.dp))
@@ -87,7 +86,7 @@ internal fun OverlayAppearanceCard() {
             )
             Slider(
                 value = appearance.backgroundAlpha,
-                onValueChange = store::setBackgroundAlpha,
+                onValueChange = onBackgroundAlphaChanged,
                 modifier = Modifier.fillMaxWidth(),
                 valueRange = 0f..1f,
             )
@@ -97,7 +96,7 @@ internal fun OverlayAppearanceCard() {
             ColorSwatchRow(
                 selected = appearance.fontColor,
                 colors = OverlayColors.FontPresets,
-                onSelect = store::setFontColor,
+                onSelect = onFontColorChanged,
             )
 
             Spacer(Modifier.height(10.dp))
@@ -106,7 +105,7 @@ internal fun OverlayAppearanceCard() {
             )
             Slider(
                 value = appearance.fontAlpha,
-                onValueChange = store::setFontAlpha,
+                onValueChange = onFontAlphaChanged,
                 modifier = Modifier.fillMaxWidth(),
                 valueRange = 0f..1f,
             )

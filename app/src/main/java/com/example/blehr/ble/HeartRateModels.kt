@@ -1,6 +1,6 @@
 package com.example.blehr.ble
 
-import com.example.blehr.core.text.HeartRateDiagnostic
+
 
 enum class SensorContact {
     NOT_SUPPORTED,

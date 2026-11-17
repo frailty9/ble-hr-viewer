@@ -35,7 +35,6 @@ import com.example.blehr.R
 import com.example.blehr.ble.ScannedDevice
 import com.example.blehr.data.heartrate.ConnectionPhase
 import com.example.blehr.data.heartrate.HeartRateState
-import com.example.blehr.feature.home.HomeViewModel
 import com.example.blehr.ui.components.StatusChip
 import com.example.blehr.ui.theme.Accent
 import com.example.blehr.ui.theme.Ink
@@ -47,7 +46,10 @@ import com.example.blehr.ui.theme.WarnAmber
 @Composable
 internal fun DeviceCard(
     state: HeartRateState,
-    viewModel: HomeViewModel,
+    onStartScan: () -> Unit,
+    onStopScan: () -> Unit,
+    onConnect: (ScannedDevice) -> Unit,
+    onDisconnect: () -> Unit,
     openBluetoothSettings: () -> Unit,
 ) {
     Card(
@@ -73,14 +75,14 @@ internal fun DeviceCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Button(onClick = {
-                    if (state.scanning) viewModel.stopScan() else viewModel.startScan()
+                    if (state.scanning) onStopScan() else onStartScan()
                 }) {
                     Text(if (state.scanning) stringResource(R.string.stop_scan) else stringResource(R.string.scan_ble))
                 }
                 if (state.connection == ConnectionPhase.CONNECTED ||
                     state.connection == ConnectionPhase.CONNECTING
                 ) {
-                    OutlinedButton(onClick = viewModel::disconnect) {
+                    OutlinedButton(onClick = onDisconnect) {
                         Text(stringResource(R.string.disconnect))
                     }
                 }
@@ -128,7 +130,7 @@ internal fun DeviceCard(
                                 device = device,
                                 selected = state.connection == ConnectionPhase.CONNECTED &&
                                     device.address == state.connectedAddress,
-                                onClick = { viewModel.connect(device) },
+                                onClick = { onConnect(device) },
                             )
                         }
                     }
