@@ -12,8 +12,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -50,8 +50,9 @@ fun HomeScreen(
     val portraitScroll = rememberScrollState()
     val landscapeLeftScroll = rememberScrollState()
     val landscapeRightScroll = rememberScrollState()
-    val bottomInset = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
-        .asPaddingValues().calculateBottomPadding()
+    // This space belongs to the content, so it enters the viewport only at the end of scrolling.
+    val bottomContentSpace = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
+        .asPaddingValues().calculateBottomPadding() + PageMargin
     Column(
         modifier = Modifier
             .testTag("home_screen")
@@ -80,7 +81,7 @@ fun HomeScreen(
                         TrendCard(state)
                         Spacer(Modifier.height(10.dp))
                         PacketCard(state)
-                        Spacer(Modifier.height(bottomInset))
+                        Spacer(Modifier.height(bottomContentSpace))
                     }
                     Column(
                         modifier = Modifier
@@ -96,7 +97,7 @@ fun HomeScreen(
                         ErrorCard(state)
                         Spacer(Modifier.height(10.dp))
                         HelpCard()
-                        Spacer(Modifier.height(bottomInset))
+                        Spacer(Modifier.height(bottomContentSpace))
                     }
                 }
             } else {
@@ -119,7 +120,7 @@ fun HomeScreen(
                     PacketCard(state)
                     Spacer(Modifier.height(10.dp))
                     HelpCard()
-                    Spacer(Modifier.height(bottomInset))
+                    Spacer(Modifier.height(bottomContentSpace))
                 }
             }
         }
