@@ -42,6 +42,10 @@
 
 界面提供浅色、深色主题，默认跟随系统。设置中可手动切换，立即生效并在重启后保留；跟随系统时随系统深色模式自动更新。应用主题与悬浮窗的颜色、透明度各自独立。
 
+页面圆角会参考设备屏幕圆角：Android 12 及以上取系统提供的最大半径，换算为 dp 后减去 14dp 页面边距，并限制在 12–28dp；无有效数据、旧系统及多窗口模式使用 20dp。卡片、设备行、按钮、状态标签和三段控件采用同一套比例层级，悬浮窗样式独立。主页滚动视窗也使用圆角裁切，横屏两列分别滚动。
+
+当前 `0.4.3-SNAPSHOT` 用于真机观感验收，暂未合并到 main。
+
 ## 使用
 
 1. 在手环或其配套应用中开启心率广播。
@@ -114,6 +118,7 @@ ui/                  跨页面组件与主题
 | 语言三段控件 | `feature/settings/components/LanguageSelector.kt` |
 | 主题三段控件、浅色和深色配色 | `feature/settings/components/ThemeSelector.kt`、`ui/theme/Theme.kt` |
 | 三段控件的动画和尺寸 | `ui/components/AnimatedSegmentedSelector.kt` |
+| 设备圆角读取、计算和各组件圆角层级 | `ui/theme/Shapes.kt` |
 | 外观预览、颜色选项、透明度控件 | `feature/settings/components/OverlayAppearanceCard.kt` |
 | 设置默认值、保存方式 | `data/settings/` |
 | 主页面布局、各卡片 | `feature/home/HomeScreen.kt`、`feature/home/components/` |

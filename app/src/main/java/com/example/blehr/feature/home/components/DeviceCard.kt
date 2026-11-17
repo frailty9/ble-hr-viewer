@@ -1,7 +1,6 @@
 package com.example.blehr.feature.home.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -38,6 +36,7 @@ import com.example.blehr.data.heartrate.HeartRateState
 import com.example.blehr.ui.components.StatusChip
 import com.example.blehr.ui.theme.Accent
 import com.example.blehr.ui.theme.Ink
+import com.example.blehr.ui.theme.LocalAppShapes
 import com.example.blehr.ui.theme.Muted
 import com.example.blehr.ui.theme.OkGreen
 import com.example.blehr.ui.theme.SurfaceRaised
@@ -54,7 +53,7 @@ internal fun DeviceCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = LocalAppShapes.current.card,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.padding(18.dp)) {
@@ -74,20 +73,21 @@ internal fun DeviceCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Button(onClick = {
-                    if (state.scanning) onStopScan() else onStartScan()
-                }) {
+                Button(
+                    onClick = { if (state.scanning) onStopScan() else onStartScan() },
+                    shape = LocalAppShapes.current.button,
+                ) {
                     Text(if (state.scanning) stringResource(R.string.stop_scan) else stringResource(R.string.scan_ble))
                 }
                 if (state.connection == ConnectionPhase.CONNECTED ||
                     state.connection == ConnectionPhase.CONNECTING
                 ) {
-                    OutlinedButton(onClick = onDisconnect) {
+                    OutlinedButton(onClick = onDisconnect, shape = LocalAppShapes.current.button) {
                         Text(stringResource(R.string.disconnect))
                     }
                 }
             }
-            TextButton(onClick = openBluetoothSettings) {
+            TextButton(onClick = openBluetoothSettings, shape = LocalAppShapes.current.button) {
                 Text(stringResource(R.string.open_bluetooth_settings))
             }
             if (state.scanning) {
@@ -148,10 +148,9 @@ private fun DeviceRow(
     onClick: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = LocalAppShapes.current.row,
         color = if (selected) Accent.copy(alpha = 0.12f) else SurfaceRaised,
         border = if (selected) BorderStroke(1.dp, Accent) else null,
     ) {

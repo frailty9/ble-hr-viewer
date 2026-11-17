@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -20,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.example.blehr.R
 import com.example.blehr.ui.components.StatusChip
 import com.example.blehr.ui.theme.Ink
+import com.example.blehr.ui.theme.LocalAppShapes
 import com.example.blehr.ui.theme.Muted
 import com.example.blehr.ui.theme.OkGreen
 import com.example.blehr.ui.theme.WarnAmber
@@ -28,7 +28,7 @@ import com.example.blehr.ui.theme.WarnAmber
 internal fun OverlayCard(granted: Boolean, onShow: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = LocalAppShapes.current.card,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.padding(18.dp)) {
@@ -57,7 +57,7 @@ internal fun OverlayCard(granted: Boolean, onShow: () -> Unit) {
                 color = Muted,
             )
             Spacer(Modifier.height(10.dp))
-            Button(onClick = onShow) {
+            Button(onClick = onShow, shape = LocalAppShapes.current.button) {
                 Text(if (granted) stringResource(R.string.overlay_show) else stringResource(R.string.overlay_allow_show))
             }
         }

@@ -8,6 +8,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import com.example.blehr.data.settings.AppTheme
@@ -66,7 +67,9 @@ val WarnAmber: Color @Composable @ReadOnlyComposable get() =
 @Composable
 fun BleHrTheme(theme: AppTheme = AppTheme.SYSTEM, content: @Composable () -> Unit) {
     val dark = theme.isDark(isSystemInDarkTheme())
-    CompositionLocalProvider(LocalDarkTheme provides dark) {
+    val radii = rememberAppCornerRadii()
+    val shapes = remember(radii) { AppShapes(radii) }
+    CompositionLocalProvider(LocalDarkTheme provides dark, LocalAppShapes provides shapes) {
         MaterialTheme(
             colorScheme = if (dark) DarkColors else LightColors,
             typography = Typography(),

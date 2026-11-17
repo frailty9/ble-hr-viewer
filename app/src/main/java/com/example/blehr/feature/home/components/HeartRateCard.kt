@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +43,7 @@ import com.example.blehr.data.heartrate.HeartRateState
 import com.example.blehr.ui.components.StatusChip
 import com.example.blehr.ui.theme.Accent
 import com.example.blehr.ui.theme.ErrorRed
+import com.example.blehr.ui.theme.LocalAppShapes
 import com.example.blehr.ui.theme.Muted
 import com.example.blehr.ui.theme.OkGreen
 import com.example.blehr.ui.theme.WarnAmber
@@ -94,7 +94,7 @@ internal fun BpmCard(state: HeartRateState) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = LocalAppShapes.current.card,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),

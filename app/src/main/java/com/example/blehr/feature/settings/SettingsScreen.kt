@@ -27,8 +27,9 @@ import com.example.blehr.data.settings.AppLanguage
 import com.example.blehr.data.settings.AppTheme
 import com.example.blehr.data.settings.OverlayAppearance
 import com.example.blehr.feature.settings.components.LanguageSelector
-import com.example.blehr.feature.settings.components.ThemeSelector
 import com.example.blehr.feature.settings.components.OverlayAppearanceCard
+import com.example.blehr.feature.settings.components.ThemeSelector
+import com.example.blehr.ui.theme.PageMargin
 
 @Composable
 fun SettingsScreen(
@@ -51,7 +52,7 @@ fun SettingsScreen(
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .testTag("settings_scroll")
                 .verticalScroll(rememberScrollState())
-                .padding(14.dp),
+                .padding(PageMargin),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
