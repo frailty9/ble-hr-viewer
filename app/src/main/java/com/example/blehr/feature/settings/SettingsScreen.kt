@@ -24,8 +24,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.blehr.R
 import com.example.blehr.data.settings.AppLanguage
+import com.example.blehr.data.settings.AppTheme
 import com.example.blehr.data.settings.OverlayAppearance
 import com.example.blehr.feature.settings.components.LanguageSelector
+import com.example.blehr.feature.settings.components.ThemeSelector
 import com.example.blehr.feature.settings.components.OverlayAppearanceCard
 
 @Composable
@@ -39,6 +41,8 @@ fun SettingsScreen(
     onFontColorChanged: (Int) -> Unit,
     onFontAlphaChanged: (Float) -> Unit,
     onResetAppearance: () -> Unit,
+    theme: AppTheme = AppTheme.SYSTEM,
+    onThemeSelected: (AppTheme) -> Unit = {},
 ) {
     Box(Modifier.fillMaxSize().testTag("settings_screen")) {
         Column(
@@ -64,6 +68,7 @@ fun SettingsScreen(
                 )
             }
             LanguageSelector(language, onLanguageSelected)
+            ThemeSelector(theme, onThemeSelected)
             OverlayAppearanceCard(
                 appearance, onBackgroundColorChanged, onBackgroundAlphaChanged,
                 onFontColorChanged, onFontAlphaChanged, onResetAppearance,

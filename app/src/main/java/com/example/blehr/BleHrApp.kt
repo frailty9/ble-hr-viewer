@@ -3,12 +3,14 @@ package com.example.blehr
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.view.View
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -18,8 +20,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.blehr.data.settings.AppLanguage
 import com.example.blehr.data.settings.LanguageSettings
+import com.example.blehr.data.settings.SettingsRepository
 import com.example.blehr.feature.home.HomeRoute
 import com.example.blehr.feature.home.HomeViewModel
 import com.example.blehr.feature.settings.SettingsRoute
@@ -27,9 +31,18 @@ import com.example.blehr.navigation.BleHrNavHost
 import com.example.blehr.ui.theme.BleHrTheme
 
 @Composable
-fun BleHrApp(homeViewModel: HomeViewModel, onLanguageSelected: (AppLanguage) -> Unit) {
+fun BleHrApp(
+    homeViewModel: HomeViewModel,
+    onLanguageSelected: (AppLanguage) -> Unit,
+    onDarkThemeChanged: (Boolean) -> Unit = {},
+) {
+    val context = LocalContext.current
+    val settings = remember(context.applicationContext) { SettingsRepository.get(context) }
+    val theme by settings.theme.collectAsStateWithLifecycle()
     LocalizedContent {
-        BleHrTheme {
+        val dark = theme.isDark(isSystemInDarkTheme())
+        SideEffect { onDarkThemeChanged(dark) }
+        BleHrTheme(theme = theme) {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 BleHrNavHost(
                     homeContent = { openSettings -> HomeRoute(homeViewModel, openSettings) },

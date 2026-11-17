@@ -40,6 +40,8 @@
 
 界面支持中文和英文，默认跟随系统语言；其他语言使用英文。在应用的“设置”页面可选择跟随系统、中文或 English，立即生效并保存；切换时原位更新页面，保留导航和动画状态。Android 13 及以上也可通过系统的应用语言设置选择。
 
+界面提供浅色、深色主题，默认跟随系统。设置中可手动切换，立即生效并在重启后保留；跟随系统时随系统深色模式自动更新。应用主题与悬浮窗的颜色、透明度各自独立。
+
 ## 使用
 
 1. 在手环或其配套应用中开启心率广播。
@@ -50,7 +52,7 @@
 
 悬浮窗的颜色、透明度设置会保存在本机，并在运行时立即生效。默认使用深灰色背景（30% 不透明度）和预设粉红色字体（65% 不透明度）；升级保留已有设置，“恢复默认”应用这组样式。
 
-点击主界面的“设置”，可选择界面语言，并调整悬浮窗外观。语言和外观设置无需授予蓝牙权限即可使用。
+点击主界面的“设置”，可选择界面语言、主题，并调整悬浮窗外观。设置无需授予蓝牙权限即可使用；悬浮窗的“恢复默认”只重置其外观。
 
 ## 构建
 
@@ -97,9 +99,9 @@ navigation/          类型安全路由、NavHost、250ms 进出动画
 feature/home/        主页面布局、Route、ViewModel、权限引导
   components/        标题栏、BPM、趋势、设备、悬浮窗入口、诊断、帮助
 feature/settings/    设置页布局、Route、ViewModel
-  components/        三段语言选择、外观调整（含预览和色块）
+  components/        三段语言和主题选择、外观调整（含预览和色块）
 data/heartrate/      进程级 BLE 状态与心率数据流
-data/settings/       外观存储、语言适配、设置模型
+data/settings/       主题与外观存储、语言适配、设置模型
 ble/                 蓝牙扫描、GATT、心率协议解析与模型
 overlay/             系统悬浮窗 View 和前台 Service
 core/text/           延迟本地化文本与诊断映射
@@ -110,6 +112,8 @@ ui/                  跨页面组件与主题
 | --- | --- |
 | 设置页面区块、间距、返回栏 | `feature/settings/SettingsScreen.kt` |
 | 语言三段控件 | `feature/settings/components/LanguageSelector.kt` |
+| 主题三段控件、浅色和深色配色 | `feature/settings/components/ThemeSelector.kt`、`ui/theme/Theme.kt` |
+| 三段控件的动画和尺寸 | `ui/components/AnimatedSegmentedSelector.kt` |
 | 外观预览、颜色选项、透明度控件 | `feature/settings/components/OverlayAppearanceCard.kt` |
 | 设置默认值、保存方式 | `data/settings/` |
 | 主页面布局、各卡片 | `feature/home/HomeScreen.kt`、`feature/home/components/` |
@@ -127,7 +131,7 @@ Windows 使用以下命令；Linux / macOS 将 `.\gradlew.bat` 替换为 `./grad
 .\gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease
 ```
 
-真机连接后执行导航测试（不启动模拟器）：
+真机连接后执行设置、主题与导航测试（不启动模拟器）：
 
 ```powershell
 .\gradlew.bat :app:connectedDebugAndroidTest
@@ -148,7 +152,7 @@ Windows 使用以下命令；Linux / macOS 将 `.\gradlew.bat` 替换为 `./grad
 | 显示在其他应用上层 | 显示心率悬浮窗 |
 | 前台服务、通知 | 悬浮窗运行时保持设备连接并提供关闭入口 |
 
-应用未声明网络权限。心率数据在进程内处理，外观设置通过 SharedPreferences 保存在本机。调试日志可能包含设备名称、地址和原始心率包，分享日志前请删除个人设备信息。
+应用未声明网络权限。心率数据在进程内处理，主题和外观设置通过 SharedPreferences 保存在本机。调试日志可能包含设备名称、地址和原始心率包，分享日志前请删除个人设备信息。
 
 ## 已知限制
 

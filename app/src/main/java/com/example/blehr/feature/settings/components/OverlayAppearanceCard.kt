@@ -125,6 +125,8 @@ internal fun OverlayAppearanceCard(
 @OptIn(ExperimentalMaterial3Api::class)
 private fun OpacitySlider(value: Float, onValueChange: (Float) -> Unit, modifier: Modifier = Modifier) {
     val interactionSource = remember { MutableInteractionSource() }
+    val activeColor = Accent
+    val inactiveColor = SurfaceRaised
     Slider(
         value = value,
         onValueChange = onValueChange,
@@ -143,13 +145,13 @@ private fun OpacitySlider(value: Float, onValueChange: (Float) -> Unit, modifier
                 val rtl = layoutDirection == LayoutDirection.Rtl
                 val start = Offset(if (rtl) size.width else 0f, center.y)
                 val end = Offset(if (rtl) 0f else size.width, center.y)
-                drawLine(SurfaceRaised, start, end, strokeWidth = size.height, cap = StrokeCap.Round)
+                drawLine(inactiveColor, start, end, strokeWidth = size.height, cap = StrokeCap.Round)
                 if (state.value > 0f) {
                     val activeEnd = Offset(
                         if (rtl) size.width * (1f - state.value) else size.width * state.value,
                         center.y,
                     )
-                    drawLine(Accent, start, activeEnd, strokeWidth = size.height, cap = StrokeCap.Round)
+                    drawLine(activeColor, start, activeEnd, strokeWidth = size.height, cap = StrokeCap.Round)
                 }
             }
         },

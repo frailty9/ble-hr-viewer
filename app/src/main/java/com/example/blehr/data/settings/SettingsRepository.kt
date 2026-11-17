@@ -14,6 +14,7 @@ class SettingsRepository private constructor(context: Context) {
         private const val KEY_BG_ALPHA = "bg_alpha"
         private const val KEY_FONT_COLOR = "font_color"
         private const val KEY_FONT_ALPHA = "font_alpha"
+        private const val KEY_THEME = "theme_mode"
 
         @Volatile
         private var instance: SettingsRepository? = null
@@ -30,6 +31,13 @@ class SettingsRepository private constructor(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private val _appearance = MutableStateFlow(load())
     val appearance: StateFlow<OverlayAppearance> = _appearance.asStateFlow()
+    private val _theme = MutableStateFlow(AppTheme.fromKey(prefs.getString(KEY_THEME, null)))
+    val theme: StateFlow<AppTheme> = _theme.asStateFlow()
+
+    fun setTheme(theme: AppTheme) {
+        _theme.value = theme
+        prefs.edit { putString(KEY_THEME, theme.key) }
+    }
 
     fun setBackgroundColor(color: Int) =
         commit(_appearance.value.copy(backgroundColor = color))
