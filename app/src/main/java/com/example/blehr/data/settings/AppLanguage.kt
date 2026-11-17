@@ -1,4 +1,6 @@
-package com.example.blehr.settings
+package com.example.blehr.data.settings
+
+
 
 enum class AppLanguage(val tag: String) {
     SYSTEM(""),

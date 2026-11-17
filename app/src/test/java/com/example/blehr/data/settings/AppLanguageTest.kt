@@ -1,6 +1,5 @@
-package com.example.blehr
+package com.example.blehr.data.settings
 
-import com.example.blehr.settings.AppLanguage
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

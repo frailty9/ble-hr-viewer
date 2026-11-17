@@ -14,17 +14,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -43,13 +41,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
+import com.example.blehr.data.settings.AppLanguage
+import com.example.blehr.data.settings.LanguageSettings
+import com.example.blehr.feature.home.HomeScreen
+import com.example.blehr.feature.home.HomeViewModel
+import com.example.blehr.feature.settings.SettingsScreen
 import com.example.blehr.ui.theme.BleHrTheme
 import com.example.blehr.ui.theme.Muted
-import com.example.blehr.settings.AppLanguage
-import com.example.blehr.settings.LanguageSettings
 
 class MainActivity : ComponentActivity() {
-    private val viewModel: HeartRateViewModel by viewModels()
+    private val viewModel: HomeViewModel by viewModels()
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LanguageSettings.localizedContext(newBase))
@@ -71,7 +74,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun HeartRateApp(viewModel: HeartRateViewModel, onLanguageSelected: (AppLanguage) -> Unit) {
+private fun HeartRateApp(viewModel: HomeViewModel, onLanguageSelected: (AppLanguage) -> Unit) {
     val context = LocalContext.current
     var showSettings by rememberSaveable { mutableStateOf(false) }
     val blePermissions = remember { requiredBlePermissions() }
@@ -109,7 +112,7 @@ private fun HeartRateApp(viewModel: HeartRateViewModel, onLanguageSelected: (App
                 onBack = { showSettings = false },
             )
         } else if (granted) {
-            HeartRateScreen(viewModel, onOpenSettings = { showSettings = true })
+            HomeScreen(viewModel, onOpenSettings = { showSettings = true })
         } else {
             PermissionGate(
                 onOpenSettingsPage = { showSettings = true },

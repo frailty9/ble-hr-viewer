@@ -1,46 +1,18 @@
-package com.example.blehr
+package com.example.blehr.data.heartrate
 
 import android.content.Context
-import com.example.blehr.ui.UiText
-import com.example.blehr.ui.uiText
+import com.example.blehr.R
 import com.example.blehr.ble.BleEvent
 import com.example.blehr.ble.BleHeartRateClient
 import com.example.blehr.ble.HeartRateSample
 import com.example.blehr.ble.ScannedDevice
 import com.example.blehr.ble.SensorContact
+import com.example.blehr.core.text.UiText
+import com.example.blehr.core.text.uiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-
-enum class ConnectionPhase {
-    IDLE,
-    SCANNING,
-    CONNECTING,
-    CONNECTED,
-    DISCONNECTED,
-    ERROR,
-}
-
-data class ErrorEntry(
-    val reason: UiText,
-    val rawHex: String,
-    val atMillis: Long,
-)
-
-data class HeartRateUiState(
-    val scanning: Boolean = false,
-    val devices: List<ScannedDevice> = emptyList(),
-    val connection: ConnectionPhase = ConnectionPhase.IDLE,
-    val connectedName: String? = null,
-    val connectedAddress: String? = null,
-    val status: UiText = uiText(R.string.status_idle),
-    val sample: HeartRateSample? = null,
-    val history: List<Int> = emptyList(),
-    val lastRawHex: String = "",
-    val parseErrorCount: Int = 0,
-    val errors: List<ErrorEntry> = emptyList(),
-)
 
 /**
  * Process-wide BLE state shared by the Compose screen and the overlay service.
@@ -62,8 +34,8 @@ class HeartRateRepository private constructor(context: Context) {
     }
 
     private val client = BleHeartRateClient(context) { event -> onBleEvent(event) }
-    private val _ui = MutableStateFlow(HeartRateUiState())
-    val ui: StateFlow<HeartRateUiState> = _ui.asStateFlow()
+    private val _ui = MutableStateFlow(HeartRateState())
+    val ui: StateFlow<HeartRateState> = _ui.asStateFlow()
 
     fun startScan() {
         _ui.update {

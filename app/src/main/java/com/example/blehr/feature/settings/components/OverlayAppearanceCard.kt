@@ -1,6 +1,5 @@
-package com.example.blehr
+package com.example.blehr.feature.settings.components
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,26 +10,14 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -45,103 +32,25 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.example.blehr.R
 import com.example.blehr.ble.HeartRateSample
 import com.example.blehr.ble.SensorContact
+import com.example.blehr.data.heartrate.HeartRateState
+import com.example.blehr.data.settings.OverlayAppearance
+import com.example.blehr.data.settings.OverlayColors
+import com.example.blehr.data.settings.SettingsRepository
 import com.example.blehr.overlay.HeartRateOverlayView
-import com.example.blehr.overlay.OverlayAppearance
-import com.example.blehr.overlay.OverlayColors
-import com.example.blehr.overlay.OverlaySettingsStore
-import com.example.blehr.settings.AppLanguage
 import com.example.blehr.ui.theme.Accent
 import com.example.blehr.ui.theme.Ink
 import com.example.blehr.ui.theme.Muted
 import kotlin.math.roundToInt
 
 @Composable
-fun SettingsScreen(
-    language: AppLanguage,
-    onLanguageSelected: (AppLanguage) -> Unit,
-    onBack: () -> Unit,
-) {
-    BackHandler(onBack = onBack)
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .verticalScroll(rememberScrollState())
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_arrow_back),
-                    contentDescription = stringResource(R.string.back),
-                )
-            }
-            Text(
-                text = stringResource(R.string.settings_title),
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(start = 8.dp),
-            )
-        }
-        LanguageCard(language, onLanguageSelected)
-        OverlayAppearanceCard()
-    }
-}
-
-@Composable
-@OptIn(ExperimentalMaterial3Api::class)
-private fun LanguageCard(language: AppLanguage, onLanguageSelected: (AppLanguage) -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
-        Column(Modifier.padding(18.dp)) {
-            Text(stringResource(R.string.language_title), style = MaterialTheme.typography.titleMedium)
-            Text(
-                stringResource(R.string.language_description),
-                style = MaterialTheme.typography.bodySmall,
-                color = Muted,
-                modifier = Modifier.padding(top = 6.dp, bottom = 8.dp),
-            )
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                AppLanguage.entries.forEachIndexed { index, option ->
-                    SegmentedButton(
-                        selected = language == option,
-                        onClick = { onLanguageSelected(option) },
-                        shape = SegmentedButtonDefaults.itemShape(index, AppLanguage.entries.size),
-                        icon = {},
-                        colors = SegmentedButtonDefaults.colors(
-                            activeContainerColor = Accent.copy(alpha = 0.16f),
-                            activeContentColor = Accent,
-                        ),
-                    ) {
-                        Text(
-                            text = when (option) {
-                                AppLanguage.SYSTEM -> stringResource(R.string.language_system)
-                                AppLanguage.CHINESE -> stringResource(R.string.language_chinese)
-                                AppLanguage.ENGLISH -> stringResource(R.string.language_english)
-                            },
-                            textAlign = TextAlign.Center,
-                            maxLines = 2,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun OverlayAppearanceCard() {
+internal fun OverlayAppearanceCard() {
     val context = LocalContext.current
-    val store = remember { OverlaySettingsStore.get(context) }
+    val store = remember { SettingsRepository.get(context) }
     val appearance by store.appearance.collectAsState()
 
     Card(
@@ -205,6 +114,7 @@ private fun OverlayAppearanceCard() {
     }
 }
 
+
 @Composable
 private fun AppearanceLabel(text: String) {
     Text(
@@ -214,10 +124,11 @@ private fun AppearanceLabel(text: String) {
     )
 }
 
+
 @Composable
 private fun OverlayPreview(appearance: OverlayAppearance) {
     val previewState = remember {
-        HeartRateUiState(
+        HeartRateState(
             sample = HeartRateSample(
                 bpm = 123,
                 sensorContact = SensorContact.NOT_SUPPORTED,
@@ -247,6 +158,7 @@ private fun OverlayPreview(appearance: OverlayAppearance) {
     }
 }
 
+
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
 private fun ColorSwatchRow(
@@ -274,4 +186,3 @@ private fun ColorSwatchRow(
         }
     }
 }
-

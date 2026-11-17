@@ -20,36 +20,11 @@ import android.os.ParcelUuid
 import android.util.Log
 import androidx.annotation.RequiresApi
 import com.example.blehr.R
-import com.example.blehr.ui.UiText
-import com.example.blehr.ui.uiText
-import com.example.blehr.ui.asUiText
+import com.example.blehr.core.text.asUiText
+import com.example.blehr.core.text.uiText
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
-
-data class ScannedDevice(
-    val device: BluetoothDevice,
-    val name: String?,
-    val address: String,
-    val rssi: Int,
-    val hasHeartRateService: Boolean,
-)
-
-sealed interface BleEvent {
-    data class ScanResults(val devices: List<ScannedDevice>) : BleEvent
-    data class ScanFinished(val message: UiText) : BleEvent
-    data class ScanFailed(val message: UiText) : BleEvent
-    data class Connecting(val name: String?, val address: String) : BleEvent
-    data class Connected(
-        val name: String?,
-        val address: String,
-        val services: List<String>,
-    ) : BleEvent
-    data class Disconnected(val message: UiText) : BleEvent
-    data class Notification(val sample: HeartRateSample) : BleEvent
-    data class BadPacket(val reason: UiText, val rawHex: String) : BleEvent
-    data class Error(val message: UiText) : BleEvent
-}
 
 /**
  * Minimal GATT client for the standard Heart Rate Service.
