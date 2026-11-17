@@ -1,7 +1,5 @@
 package com.example.blehr.data.settings
 
-
-
 /** Default colors and presets. Change these if you want different swatches. */
 object OverlayColors {
     val DefaultBackground = 0xFF141A22.toInt()
