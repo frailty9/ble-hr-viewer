@@ -57,7 +57,7 @@ class HeartRateOverlayView(
 
         // Gesture rhythm.
         const val LONG_PRESS_MS = 600L
-        const val DRAG_SLOP_DP = 4
+        const val DRAG_SLOP_DP = 1
     }
 
     val windowMarginPx: Int = dp(WINDOW_MARGIN_DP)
