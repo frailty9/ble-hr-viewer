@@ -6,18 +6,20 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.example.blehr.ble.ScannedDevice
@@ -30,7 +32,6 @@ import com.example.blehr.feature.home.components.HelpCard
 import com.example.blehr.feature.home.components.OverlayCard
 import com.example.blehr.feature.home.components.PacketCard
 import com.example.blehr.feature.home.components.TrendCard
-import com.example.blehr.ui.theme.LocalAppShapes
 import com.example.blehr.ui.theme.PageMargin
 
 @Composable
@@ -49,12 +50,14 @@ fun HomeScreen(
     val portraitScroll = rememberScrollState()
     val landscapeLeftScroll = rememberScrollState()
     val landscapeRightScroll = rememberScrollState()
+    val bottomInset = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
+        .asPaddingValues().calculateBottomPadding()
     Column(
         modifier = Modifier
             .testTag("home_screen")
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(PageMargin),
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
+            .padding(horizontal = PageMargin),
     ) {
         AppHeader(state, onOpenSettings)
         Spacer(Modifier.height(10.dp))
@@ -70,7 +73,6 @@ fun HomeScreen(
                             .weight(1.15f)
                             .fillMaxHeight()
                             .testTag("home_left_scroll")
-                            .clip(LocalAppShapes.current.card)
                             .verticalScroll(landscapeLeftScroll),
                     ) {
                         BpmCard(state)
@@ -78,13 +80,13 @@ fun HomeScreen(
                         TrendCard(state)
                         Spacer(Modifier.height(10.dp))
                         PacketCard(state)
+                        Spacer(Modifier.height(bottomInset))
                     }
                     Column(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
                             .testTag("home_right_scroll")
-                            .clip(LocalAppShapes.current.card)
                             .verticalScroll(landscapeRightScroll),
                     ) {
                         DeviceCard(state, onStartScan, onStopScan, onConnect, onDisconnect, onOpenBluetoothSettings)
@@ -94,6 +96,7 @@ fun HomeScreen(
                         ErrorCard(state)
                         Spacer(Modifier.height(10.dp))
                         HelpCard()
+                        Spacer(Modifier.height(bottomInset))
                     }
                 }
             } else {
@@ -101,7 +104,6 @@ fun HomeScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .testTag("home_scroll")
-                        .clip(LocalAppShapes.current.card)
                         .verticalScroll(portraitScroll),
                 ) {
                     BpmCard(state)
@@ -117,6 +119,7 @@ fun HomeScreen(
                     PacketCard(state)
                     Spacer(Modifier.height(10.dp))
                     HelpCard()
+                    Spacer(Modifier.height(bottomInset))
                 }
             }
         }

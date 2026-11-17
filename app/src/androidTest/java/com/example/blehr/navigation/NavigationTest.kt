@@ -200,7 +200,7 @@ class NavigationTest {
     }
 
     @Test
-    fun scrollingContentIsClippedToFixedRoundedViewport() {
+    fun scrollingViewportReachesBottomWithoutAnInsetRoundedFrame() {
         compose.runOnUiThread { activity.setContent { TestPages() } }
         compose.onNodeWithTag("home_scroll").performSemanticsAction(SemanticsActions.ScrollBy) {
             it(0f, 200f)
@@ -213,10 +213,11 @@ class NavigationTest {
         val right = (viewport.right - screenBounds.left).toInt() - 1
         val top = (viewport.top - screenBounds.top).toInt()
         val middle = (left + right) / 2
+        assertEquals(screenBounds.bottom, viewport.bottom, 1f)
         // The middle of the first card is now at the viewport top, not its own rounded edge.
         assertEquals(0xFFFFFFFF.toInt(), pixels[middle, top + 2].toArgb())
-        assertEquals(0xFFF4F6F9.toInt(), pixels[left + 2, top + 2].toArgb())
-        assertEquals(0xFFF4F6F9.toInt(), pixels[right - 2, top + 2].toArgb())
+        assertEquals(0xFFFFFFFF.toInt(), pixels[left + 2, top + 2].toArgb())
+        assertEquals(0xFFFFFFFF.toInt(), pixels[right - 2, top + 2].toArgb())
     }
 
     @Test
