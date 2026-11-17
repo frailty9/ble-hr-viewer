@@ -34,7 +34,7 @@ object LanguageSettings {
                 LocaleList.forLanguageTags(language.tag)
         } else {
             preferences(activity).edit(commit = true) { putString(KEY_LANGUAGE, language.tag) }
-            activity.recreate()
+            // The root composition observes this preference and updates its resource context in place.
         }
     }
 
