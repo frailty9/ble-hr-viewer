@@ -2,11 +2,15 @@ package com.example.blehr.feature.settings
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import com.example.blehr.data.settings.AppTheme
 import com.example.blehr.data.settings.SettingsRepository
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = SettingsRepository.get(application)
     val appearance = repository.appearance
+    val theme = repository.theme
+
+    fun setTheme(theme: AppTheme) = repository.setTheme(theme)
 
     fun setBackgroundColor(color: Int) = repository.setBackgroundColor(color)
     fun setBackgroundAlpha(alpha: Float) = repository.setBackgroundAlpha(alpha)

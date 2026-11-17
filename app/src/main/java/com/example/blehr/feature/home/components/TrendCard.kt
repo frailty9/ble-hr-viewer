@@ -97,13 +97,15 @@ internal fun TrendCard(state: HeartRateState) {
 
 @Composable
 private fun Sparkline(values: List<Int>, modifier: Modifier) {
+    val gridColor = GridLine
+    val lineColor = Accent
     Canvas(modifier) {
         val width = size.width
         val height = size.height
         for (index in 1..3) {
             val y = height * index / 4f
             drawLine(
-                color = GridLine,
+                color = gridColor,
                 start = Offset(0f, y),
                 end = Offset(width, y),
                 strokeWidth = 1f,
@@ -131,7 +133,7 @@ private fun Sparkline(values: List<Int>, modifier: Modifier) {
         }
         drawPath(
             path = path,
-            color = Accent,
+            color = lineColor,
             style = Stroke(
                 width = 2.5.dp.toPx(),
                 cap = StrokeCap.Round,
@@ -139,7 +141,7 @@ private fun Sparkline(values: List<Int>, modifier: Modifier) {
             ),
         )
         drawCircle(
-            color = Accent,
+            color = lineColor,
             radius = 3.5.dp.toPx(),
             center = Offset(xAt(values.lastIndex), yAt(values.last())),
         )

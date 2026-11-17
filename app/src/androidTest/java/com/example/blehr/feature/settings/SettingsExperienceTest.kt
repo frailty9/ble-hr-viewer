@@ -8,12 +8,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performScrollTo
+import androidx.core.view.WindowCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
@@ -21,6 +26,7 @@ import androidx.test.runner.lifecycle.Stage
 import com.example.blehr.MainActivity
 import com.example.blehr.R
 import com.example.blehr.data.settings.AppLanguage
+import com.example.blehr.data.settings.AppTheme
 import com.example.blehr.data.settings.LanguageSettings
 import com.example.blehr.data.settings.OverlayAppearance
 import com.example.blehr.data.settings.SettingsRepository
@@ -42,6 +48,7 @@ class SettingsExperienceTest {
     private lateinit var repository: SettingsRepository
     private lateinit var originalAppearance: OverlayAppearance
     private lateinit var originalLanguage: AppLanguage
+    private lateinit var originalTheme: AppTheme
 
     @Before
     fun launchActualActivity() {
@@ -49,6 +56,7 @@ class SettingsExperienceTest {
         val context = instrumentation.targetContext
         repository = SettingsRepository.get(context)
         originalAppearance = repository.appearance.value
+        originalTheme = repository.theme.value
         originalLanguage = LanguageSettings.selected(context)
         val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             listOf("android.permission.BLUETOOTH_SCAN", "android.permission.BLUETOOTH_CONNECT")
@@ -73,6 +81,7 @@ class SettingsExperienceTest {
         compose.mainClock.autoAdvance = true
         if (::activity.isInitialized) compose.runOnUiThread {
             LanguageSettings.apply(activity, originalLanguage)
+            repository.setTheme(originalTheme)
             repository.setBackgroundColor(originalAppearance.backgroundColor)
             repository.setBackgroundAlpha(originalAppearance.backgroundAlpha)
             repository.setFontColor(originalAppearance.fontColor)
@@ -121,7 +130,7 @@ class SettingsExperienceTest {
         }
         compose.onNodeWithTag("background_opacity_slider").performSemanticsAction(SemanticsActions.SetProgress) { it(0.79f) }
         compose.onNodeWithTag("font_opacity_slider").performSemanticsAction(SemanticsActions.SetProgress) { it(0.22f) }
-        compose.onNodeWithText(activity.getString(R.string.reset_defaults)).performClick()
+        compose.onNodeWithText(activity.getString(R.string.reset_defaults)).performScrollTo().performClick()
         compose.runOnIdle {
             val defaults = repository.appearance.value
             assertEquals(0xFF141A22.toInt(), defaults.backgroundColor)
@@ -129,6 +138,82 @@ class SettingsExperienceTest {
             assertEquals(0xFFFF4D6D.toInt(), defaults.fontColor)
             assertEquals(0.65f, defaults.fontAlpha)
         }
+    }
+
+    @Test
+    fun themeChangesKeepDestinationActivityAndOverlayAndSurviveRecreation() {
+        openSettings()
+        val before = activity
+        for ((key, dark) in listOf("light" to false, "dark" to true)) {
+            compose.onNodeWithTag("theme_$key").performScrollTo().performClick()
+            compose.onNodeWithTag("theme_$key").assertIsSelected()
+            compose.onNodeWithTag("settings_screen").assertIsDisplayed()
+            assertThemeBackground(dark)
+            compose.runOnIdle {
+                assertSame(before, resumedActivity())
+                assertEquals(originalAppearance, repository.appearance.value)
+                assertEquals(key, repository.theme.value.key)
+                assertEquals(key, activity.getSharedPreferences("overlay_appearance", 0).getString("theme_mode", null))
+                assertEquals(!dark, WindowCompat.getInsetsController(activity.window, activity.window.decorView).isAppearanceLightStatusBars)
+                assertEquals(!dark, WindowCompat.getInsetsController(activity.window, activity.window.decorView).isAppearanceLightNavigationBars)
+            }
+        }
+        compose.runOnUiThread { before.recreate() }
+        compose.waitUntil(10_000) {
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                resumedActivity()?.takeIf { it !== before }?.let { activity = it }
+            }
+            activity !== before
+        }
+        compose.onNodeWithTag("settings_screen").assertIsDisplayed()
+        compose.onNodeWithTag("theme_dark").assertIsSelected()
+        compose.runOnIdle {
+            assertEquals(AppTheme.DARK, repository.theme.value)
+            assertEquals(false, WindowCompat.getInsetsController(activity.window, activity.window.decorView).isAppearanceLightStatusBars)
+        }
+        compose.onNodeWithText(activity.getString(R.string.reset_defaults)).performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(AppTheme.DARK, repository.theme.value) }
+    }
+
+    @Test
+    fun followSystemRespondsToNightModeWithoutRecreatingActivity() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        fun shell(command: String): String = instrumentation.uiAutomation.executeShellCommand(command)
+            .use { descriptor -> java.io.FileInputStream(descriptor.fileDescriptor).use { String(it.readBytes()) } }
+        val originalNightMode = shell("cmd uimode night").substringAfter(":").trim()
+        try {
+            openSettings()
+            compose.onNodeWithTag("theme_system").performScrollTo().performClick()
+            val before = activity
+            for ((mode, dark) in listOf("yes" to true, "no" to false)) {
+                shell("cmd uimode night $mode")
+                compose.waitUntil(10_000) {
+                    var updated = false
+                    instrumentation.runOnMainSync {
+                        updated = WindowCompat.getInsetsController(activity.window, activity.window.decorView)
+                            .isAppearanceLightStatusBars == !dark
+                    }
+                    updated
+                }
+                compose.onNodeWithTag("theme_system").assertIsSelected()
+                compose.onNodeWithTag("settings_screen").assertIsDisplayed()
+                assertThemeBackground(dark)
+                compose.runOnIdle {
+                    assertSame(before, resumedActivity())
+                    assertEquals(originalAppearance, repository.appearance.value)
+                }
+            }
+        } finally {
+            shell("cmd uimode night $originalNightMode")
+        }
+    }
+
+    private fun resumedActivity(): MainActivity? = ActivityLifecycleMonitorRegistry.getInstance()
+        .getActivitiesInStage(Stage.RESUMED).filterIsInstance<MainActivity>().firstOrNull()
+
+    private fun assertThemeBackground(dark: Boolean) {
+        val pixels = compose.onNodeWithTag("settings_screen").captureToImage().toPixelMap()
+        assertEquals(if (dark) 0xFF0B0F14.toInt() else 0xFFF4F6F9.toInt(), pixels[0, 0].toArgb())
     }
 
     @Test

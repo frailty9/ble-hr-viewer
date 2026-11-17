@@ -125,4 +125,9 @@
     <string name="language_system">Follow system</string>
     <string name="language_chinese">中文</string>
     <string name="language_english">English</string>
+    <string name="theme_title">Theme</string>
+    <string name="theme_description">Follow the system, or choose a light or dark appearance.</string>
+    <string name="theme_system">Follow system</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
 </resources>

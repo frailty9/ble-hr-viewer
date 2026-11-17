@@ -16,12 +16,15 @@ fun SettingsRoute(
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val appearance by viewModel.appearance.collectAsStateWithLifecycle()
+    val theme by viewModel.theme.collectAsStateWithLifecycle()
     val context = LocalContext.current
     // Read configuration so a framework app-locale change refreshes the selected segment too.
     LocalConfiguration.current
     SettingsScreen(
         language = LanguageSettings.selected(context),
         appearance = appearance,
+        theme = theme,
+        onThemeSelected = viewModel::setTheme,
         onLanguageSelected = onLanguageSelected,
         onBack = onBack,
         onBackgroundColorChanged = viewModel::setBackgroundColor,
