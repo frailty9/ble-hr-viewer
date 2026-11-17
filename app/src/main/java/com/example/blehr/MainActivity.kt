@@ -45,9 +45,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.blehr.ui.theme.BleHrTheme
 import com.example.blehr.ui.theme.Muted
+import com.example.blehr.settings.AppLanguage
+import com.example.blehr.settings.LanguageSettings
 
 class MainActivity : ComponentActivity() {
     private val viewModel: HeartRateViewModel by viewModels()
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LanguageSettings.localizedContext(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,15 +64,16 @@ class MainActivity : ComponentActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContent {
             BleHrTheme {
-                HeartRateApp(viewModel)
+                HeartRateApp(viewModel, onLanguageSelected = { LanguageSettings.apply(this, it) })
             }
         }
     }
 }
 
 @Composable
-private fun HeartRateApp(viewModel: HeartRateViewModel) {
+private fun HeartRateApp(viewModel: HeartRateViewModel, onLanguageSelected: (AppLanguage) -> Unit) {
     val context = LocalContext.current
+    var showSettings by rememberSaveable { mutableStateOf(false) }
     val blePermissions = remember { requiredBlePermissions() }
     val requestedPermissions = remember {
         val permissions = blePermissions.toMutableList()
@@ -95,10 +102,17 @@ private fun HeartRateApp(viewModel: HeartRateViewModel) {
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
-        if (granted) {
-            HeartRateScreen(viewModel)
+        if (showSettings) {
+            SettingsScreen(
+                language = LanguageSettings.selected(context),
+                onLanguageSelected = onLanguageSelected,
+                onBack = { showSettings = false },
+            )
+        } else if (granted) {
+            HeartRateScreen(viewModel, onOpenSettings = { showSettings = true })
         } else {
             PermissionGate(
+                onOpenSettingsPage = { showSettings = true },
                 onRequest = { launcher.launch(requestedPermissions) },
                 onOpenSettings = {
                     context.startActivity(
@@ -115,6 +129,7 @@ private fun HeartRateApp(viewModel: HeartRateViewModel) {
 
 @Composable
 private fun PermissionGate(
+    onOpenSettingsPage: () -> Unit,
     onRequest: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
@@ -144,6 +159,9 @@ private fun PermissionGate(
         }
         TextButton(onClick = onOpenSettings) {
             Text(stringResource(R.string.open_app_settings))
+        }
+        TextButton(onClick = onOpenSettingsPage) {
+            Text(stringResource(R.string.settings_title))
         }
     }
 }

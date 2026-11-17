@@ -119,4 +119,11 @@
         <item quantity="one">Last %1$d notification</item>
         <item quantity="other">Last %1$d notifications</item>
     </plurals>
+    <string name="settings_title">Settings</string>
+    <string name="back">Back</string>
+    <string name="language_title">Language</string>
+    <string name="language_description">Changes apply immediately and are saved for next time.</string>
+    <string name="language_system">Follow system</string>
+    <string name="language_chinese">中文</string>
+    <string name="language_english">English</string>
 </resources>

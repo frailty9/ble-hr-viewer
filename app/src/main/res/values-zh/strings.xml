@@ -117,4 +117,11 @@
     <plurals name="recent_notifications">
         <item quantity="other">最近 %1$d 个通知</item>
     </plurals>
+    <string name="settings_title">设置</string>
+    <string name="back">返回</string>
+    <string name="language_title">语言</string>
+    <string name="language_description">选择后立即生效，并保存到下次启动。</string>
+    <string name="language_system">跟随系统</string>
+    <string name="language_chinese">中文</string>
+    <string name="language_english">English</string>
 </resources>

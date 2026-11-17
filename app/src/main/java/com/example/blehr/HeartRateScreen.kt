@@ -13,8 +13,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,16 +35,16 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -58,7 +56,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -68,6 +65,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -76,16 +74,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
-import com.example.blehr.ble.HeartRateSample
 import com.example.blehr.ble.ScannedDevice
 import com.example.blehr.ble.SensorContact
 import com.example.blehr.overlay.HeartRateOverlayService
-import com.example.blehr.overlay.HeartRateOverlayView
-import com.example.blehr.overlay.OverlayAppearance
-import com.example.blehr.overlay.OverlayColors
-import com.example.blehr.overlay.OverlaySettingsStore
 import com.example.blehr.ui.asUiText
 import com.example.blehr.ui.theme.Accent
 import com.example.blehr.ui.theme.GridLine
@@ -101,11 +93,10 @@ import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.max
-import kotlin.math.roundToInt
 import kotlin.math.sin
 
 @Composable
-fun HeartRateScreen(viewModel: HeartRateViewModel) {
+fun HeartRateScreen(viewModel: HeartRateViewModel, onOpenSettings: () -> Unit) {
     val state by viewModel.ui.collectAsState()
     val context = LocalContext.current
     val openBluetoothSettings: () -> Unit = {
@@ -141,105 +132,112 @@ fun HeartRateScreen(viewModel: HeartRateViewModel) {
         }
     }
 
-    BoxWithConstraints(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(14.dp),
     ) {
-        val landscape = maxWidth > maxHeight
-        if (landscape) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
+        AppHeader(state, onOpenSettings)
+        Spacer(Modifier.height(10.dp))
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+            val landscape = maxWidth > maxHeight
+            if (landscape) {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1.15f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState()),
+                    ) {
+                        BpmCard(state)
+                        Spacer(Modifier.height(10.dp))
+                        TrendCard(state)
+                        Spacer(Modifier.height(10.dp))
+                        PacketCard(state)
+                    }
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState()),
+                    ) {
+                        DeviceCard(state, viewModel, openBluetoothSettings)
+                        Spacer(Modifier.height(10.dp))
+                        OverlayCard(overlayGranted, showOverlay)
+                        Spacer(Modifier.height(10.dp))
+                        ErrorCard(state)
+                        Spacer(Modifier.height(10.dp))
+                        HelpCard()
+                    }
+                }
+            } else {
                 Column(
                     modifier = Modifier
-                        .weight(1.15f)
-                        .fillMaxHeight()
+                        .fillMaxSize()
                         .verticalScroll(rememberScrollState()),
                 ) {
-                    AppHeader(state)
-                    Spacer(Modifier.height(10.dp))
                     BpmCard(state)
                     Spacer(Modifier.height(10.dp))
                     TrendCard(state)
                     Spacer(Modifier.height(10.dp))
-                    PacketCard(state)
-                }
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .verticalScroll(rememberScrollState()),
-                ) {
                     DeviceCard(state, viewModel, openBluetoothSettings)
                     Spacer(Modifier.height(10.dp))
                     OverlayCard(overlayGranted, showOverlay)
                     Spacer(Modifier.height(10.dp))
-                    OverlayAppearanceCard()
-                    Spacer(Modifier.height(10.dp))
                     ErrorCard(state)
+                    Spacer(Modifier.height(10.dp))
+                    PacketCard(state)
                     Spacer(Modifier.height(10.dp))
                     HelpCard()
                 }
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                AppHeader(state)
-                Spacer(Modifier.height(10.dp))
-                BpmCard(state)
-                Spacer(Modifier.height(10.dp))
-                TrendCard(state)
-                Spacer(Modifier.height(10.dp))
-                DeviceCard(state, viewModel, openBluetoothSettings)
-                Spacer(Modifier.height(10.dp))
-                OverlayCard(overlayGranted, showOverlay)
-                Spacer(Modifier.height(10.dp))
-                OverlayAppearanceCard()
-                Spacer(Modifier.height(10.dp))
-                ErrorCard(state)
-                Spacer(Modifier.height(10.dp))
-                PacketCard(state)
-                Spacer(Modifier.height(10.dp))
-                HelpCard()
             }
         }
     }
 }
 
 @Composable
-private fun AppHeader(state: HeartRateUiState) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+@OptIn(ExperimentalLayoutApi::class)
+private fun AppHeader(state: HeartRateUiState, onOpenSettings: () -> Unit) {
+    val (label, color) = when (state.connection) {
+        ConnectionPhase.SCANNING -> stringResource(R.string.phase_scanning) to WarnAmber
+        ConnectionPhase.CONNECTING -> stringResource(R.string.phase_connecting) to WarnAmber
+        ConnectionPhase.CONNECTED -> stringResource(R.string.phase_connected) to OkGreen
+        ConnectionPhase.DISCONNECTED -> stringResource(R.string.phase_disconnected) to Muted
+        ConnectionPhase.ERROR -> stringResource(R.string.phase_error) to ErrorRed
+        ConnectionPhase.IDLE -> stringResource(R.string.phase_idle) to Muted
+    }
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
         Column(Modifier.weight(1f)) {
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = Ink,
-            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.app_name),
+                    modifier = Modifier.align(Alignment.CenterVertically),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Ink,
+                )
+                Box(Modifier.align(Alignment.CenterVertically)) { StatusChip(label, color) }
+            }
             Text(
                 text = stringResource(R.string.app_tagline),
                 style = MaterialTheme.typography.bodySmall,
                 color = Muted,
             )
         }
-        val (label, color) = when (state.connection) {
-            ConnectionPhase.SCANNING -> stringResource(R.string.phase_scanning) to WarnAmber
-            ConnectionPhase.CONNECTING -> stringResource(R.string.phase_connecting) to WarnAmber
-            ConnectionPhase.CONNECTED -> stringResource(R.string.phase_connected) to OkGreen
-            ConnectionPhase.DISCONNECTED -> stringResource(R.string.phase_disconnected) to Muted
-            ConnectionPhase.ERROR -> stringResource(R.string.phase_error) to ErrorRed
-            ConnectionPhase.IDLE -> stringResource(R.string.phase_idle) to Muted
+        IconButton(onClick = onOpenSettings) {
+            Icon(
+                painter = painterResource(R.drawable.ic_settings),
+                contentDescription = stringResource(R.string.settings_title),
+                tint = Muted,
+            )
         }
-        StatusChip(label, color)
     }
 }
 
@@ -750,139 +748,6 @@ private fun OverlayCard(granted: Boolean, onShow: () -> Unit) {
             Button(onClick = onShow) {
                 Text(if (granted) stringResource(R.string.overlay_show) else stringResource(R.string.overlay_allow_show))
             }
-        }
-    }
-}
-
-@Composable
-private fun OverlayAppearanceCard() {
-    val context = LocalContext.current
-    val store = remember { OverlaySettingsStore.get(context) }
-    val appearance by store.appearance.collectAsState()
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
-        Column(Modifier.padding(18.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(R.string.overlay_appearance),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Ink,
-                )
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = store::reset) {
-                    Text(stringResource(R.string.reset_defaults))
-                }
-            }
-            OverlayPreview(appearance)
-            Spacer(Modifier.height(10.dp))
-
-            AppearanceLabel(stringResource(R.string.background_color))
-            Spacer(Modifier.height(6.dp))
-            ColorSwatchRow(
-                selected = appearance.backgroundColor,
-                colors = OverlayColors.BackgroundPresets,
-                onSelect = store::setBackgroundColor,
-            )
-
-            Spacer(Modifier.height(10.dp))
-            AppearanceLabel(
-                stringResource(R.string.background_opacity, (appearance.backgroundAlpha * 100).roundToInt())
-            )
-            Slider(
-                value = appearance.backgroundAlpha,
-                onValueChange = store::setBackgroundAlpha,
-                modifier = Modifier.fillMaxWidth(),
-                valueRange = 0f..1f,
-            )
-
-            AppearanceLabel(stringResource(R.string.font_color))
-            Spacer(Modifier.height(6.dp))
-            ColorSwatchRow(
-                selected = appearance.fontColor,
-                colors = OverlayColors.FontPresets,
-                onSelect = store::setFontColor,
-            )
-
-            Spacer(Modifier.height(10.dp))
-            AppearanceLabel(
-                stringResource(R.string.font_opacity, (appearance.fontAlpha * 100).roundToInt())
-            )
-            Slider(
-                value = appearance.fontAlpha,
-                onValueChange = store::setFontAlpha,
-                modifier = Modifier.fillMaxWidth(),
-                valueRange = 0f..1f,
-            )
-        }
-    }
-}
-
-@Composable
-private fun AppearanceLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodySmall,
-        color = Muted,
-    )
-}
-
-@Composable
-private fun OverlayPreview(appearance: OverlayAppearance) {
-    val previewState = remember {
-        HeartRateUiState(
-            sample = HeartRateSample(
-                bpm = 123,
-                sensorContact = SensorContact.NOT_SUPPORTED,
-                energyExpendedKj = null,
-                rrIntervalsRaw = emptyList(),
-                flags = 0,
-                raw = byteArrayOf(),
-                warnings = emptyList(),
-                receivedAtMillis = 0L,
-            ),
-        )
-    }
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        AndroidView(
-            factory = { context ->
-                HeartRateOverlayView(context, onClose = {}, onDrag = { _, _ -> }).apply {
-                    bindState(previewState)
-                }
-            },
-            update = { view -> view.bindAppearance(appearance) },
-        )
-    }
-}
-
-@Composable
-private fun ColorSwatchRow(
-    selected: Int,
-    colors: List<Int>,
-    onSelect: (Int) -> Unit,
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        colors.forEach { color ->
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .clip(CircleShape)
-                    .background(Color(color))
-                    .border(
-                        width = if (color == selected) 2.dp else 1.dp,
-                        color = if (color == selected) Accent else Muted,
-                        shape = CircleShape,
-                    )
-                    .clickable { onSelect(color) },
-            )
         }
     }
 }
