@@ -60,8 +60,11 @@
 | Gradle Wrapper | 8.13 |
 | Android Gradle Plugin | 8.9.0 |
 | Kotlin | 2.0.21 |
+| Compose BOM | 2024.09.02 |
+| Navigation Compose | 2.8.9 |
+| Lifecycle | 2.8.3 |
 | Android SDK | compileSdk / targetSdk 35，minSdk 26 |
-| 应用版本 | 0.3.4（versionCode 10） |
+| 应用版本 | 0.4.0（versionCode 12） |
 
 使用 Android Studio 打开项目并配置 Android SDK，或在本机的 `local.properties` 中设置 `sdk.dir`。该文件不提交到 Git。
 
@@ -69,19 +72,52 @@ Windows：
 
 ```powershell
 .\gradlew.bat :app:assembleDebug
-adb install -r dist\ble-hr-viewer-0.3.4-debug.apk
+adb install -r dist\ble-hr-viewer-0.4.0-debug.apk
 ```
 
 Linux / macOS：
 
 ```sh
 ./gradlew :app:assembleDebug
-adb install -r dist/ble-hr-viewer-0.3.4-debug.apk
+adb install -r dist/ble-hr-viewer-0.4.0-debug.apk
 ```
 
 构建完成后会自动将带产品名和版本号的 APK 导出到 `dist/`，版本号取自构建配置。
 
 若 Gradle 下载遇到证书错误，请检查本机 JDK 的证书与网络配置，或使用已安装的 Gradle 8.13。
+
+## 源码结构与维护
+
+源码位于 `app/src/main/java/com/example/blehr/`，测试目录按相同包结构组织。
+
+```text
+MainActivity.kt       系统窗口、语言 Context、setContent
+BleHrApp.kt           主题、应用根容器和回调组装
+navigation/          类型安全路由、NavHost、250ms 进出动画
+feature/home/        主页面布局、Route、ViewModel、权限引导
+  components/        标题栏、BPM、趋势、设备、悬浮窗入口、诊断、帮助
+feature/settings/    设置页布局、Route、ViewModel
+  components/        三段语言选择、外观调整（含预览和色块）
+data/heartrate/      进程级 BLE 状态与心率数据流
+data/settings/       外观存储、语言适配、设置模型
+ble/                 蓝牙扫描、GATT、心率协议解析与模型
+overlay/             系统悬浮窗 View 和前台 Service
+core/text/           延迟本地化文本与诊断映射
+ui/                  跨页面组件与主题
+```
+
+| 想调整的内容 | 修改位置 |
+| --- | --- |
+| 设置页面区块、间距、返回栏 | `feature/settings/SettingsScreen.kt` |
+| 语言三段控件 | `feature/settings/components/LanguageSelector.kt` |
+| 外观预览、颜色选项、透明度控件 | `feature/settings/components/OverlayAppearanceCard.kt` |
+| 设置默认值、保存方式 | `data/settings/` |
+| 主页面布局、各卡片 | `feature/home/HomeScreen.kt`、`feature/home/components/` |
+| 权限检查、打开系统页面、开启悬浮窗 | `feature/home/HomeRoute.kt` |
+| 页面跳转与动画 | `navigation/BleHrNavHost.kt` |
+| 悬浮窗尺寸、三位数字布局与拖动手势 | `overlay/HeartRateOverlayView.kt` |
+
+`Route` 收集状态并执行系统操作，`Screen` 和组件只接收状态与回调。主页面 ViewModel 属于 Activity，心率 Repository 属于应用进程；导航或语言重建不会主动断开 BLE。
 
 ## 检查与发布
 
@@ -91,9 +127,15 @@ Windows 使用以下命令；Linux / macOS 将 `.\gradlew.bat` 替换为 `./grad
 .\gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease
 ```
 
+真机连接后执行导航测试（不启动模拟器）：
+
+```powershell
+.\gradlew.bat :app:connectedDebugAndroidTest
+```
+
 - 发布前核对 `app/build.gradle.kts` 中的 `versionCode`、`versionName` 和本文件的版本信息。
-- Debug APK 用于本地测试，导出为 `ble-hr-viewer-0.3.4-debug.apk`。
-- 当前未配置 release 签名，`assembleRelease` 导出的是 `ble-hr-viewer-0.3.4-unsigned.apk`；正式分发前需使用维护者自己的签名密钥生成签名 APK，签名后的正式包命名为 `ble-hr-viewer-0.3.4.apk`。
+- Debug APK 用于本地测试，导出为 `ble-hr-viewer-0.4.0-debug.apk`。
+- 当前未配置 release 签名，`assembleRelease` 导出的是 `ble-hr-viewer-0.4.0-unsigned.apk`；正式分发前需使用维护者自己的签名密钥生成签名 APK，签名后的正式包命名为 `ble-hr-viewer-0.4.0.apk`。
 - 签名密钥、密码和本机配置不入库。安装包及其 SHA-256 校验值作为发布附件提供，构建产物不提交到 Git。
 - 在真机上检查设备扫描、心率订阅、断开连接，以及悬浮窗的授权、后台显示、拖动和长按关闭。
 

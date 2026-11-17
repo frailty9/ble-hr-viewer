@@ -1,4 +1,4 @@
-package com.example.blehr.settings
+package com.example.blehr.data.settings
 
 import android.app.Activity
 import android.app.LocaleManager

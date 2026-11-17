@@ -8,8 +8,8 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.content.pm.ServiceInfo
 import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.os.Build
@@ -19,19 +19,20 @@ import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.annotation.StringRes
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import androidx.annotation.StringRes
-import com.example.blehr.HeartRateRepository
 import com.example.blehr.MainActivity
 import com.example.blehr.R
-import com.example.blehr.settings.LanguageSettings
+import com.example.blehr.data.heartrate.HeartRateRepository
+import com.example.blehr.data.settings.LanguageSettings
+import com.example.blehr.data.settings.SettingsRepository
+import kotlin.math.max
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlin.math.max
 
 class HeartRateOverlayService : Service() {
 
@@ -51,7 +52,7 @@ class HeartRateOverlayService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val repository by lazy { HeartRateRepository.get(this) }
-    private val settings by lazy { OverlaySettingsStore.get(this) }
+    private val settings by lazy { SettingsRepository.get(this) }
     private lateinit var windowManager: WindowManager
     private var overlay: HeartRateOverlayView? = null
     private var params: WindowManager.LayoutParams? = null

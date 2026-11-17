@@ -16,7 +16,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
-import com.example.blehr.HeartRateUiState
+import com.example.blehr.data.heartrate.HeartRateState
+import com.example.blehr.data.settings.OverlayAppearance
+import com.example.blehr.data.settings.OverlayColors
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -84,7 +86,7 @@ class HeartRateOverlayView(
     private val longPressRunnable = Runnable { onClose() }
 
     private var appearance = OverlayAppearance.Default
-    private var state = HeartRateUiState()
+    private var state = HeartRateState()
     private var downRawX = 0f
     private var downRawY = 0f
     private var lastRawX = 0f
@@ -118,7 +120,7 @@ class HeartRateOverlayView(
         setOnTouchListener { _, event -> handleTouch(event) }
     }
 
-    fun bindState(state: HeartRateUiState) {
+    fun bindState(state: HeartRateState) {
         this.state = state
         render()
     }

@@ -1,4 +1,4 @@
-package com.example.blehr.ui
+package com.example.blehr.core.text
 
 import android.content.Context
 import androidx.annotation.StringRes

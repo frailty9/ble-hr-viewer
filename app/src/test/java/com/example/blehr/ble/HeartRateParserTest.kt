@@ -1,9 +1,5 @@
-package com.example.blehr
+package com.example.blehr.ble
 
-import com.example.blehr.ble.DiagnosticCode
-import com.example.blehr.ble.HeartRateParseException
-import com.example.blehr.ble.HeartRateParser
-import com.example.blehr.ble.SensorContact
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows

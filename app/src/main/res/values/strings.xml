@@ -61,7 +61,6 @@
     <string name="bluetooth_permission_description">Android 12 and later require Nearby devices permission to scan and connect. Android 11 and earlier require location permission for BLE scanning. Notification permission is also requested for the overlay service; denying it does not block the main screen.</string>
     <string name="grant_permission">Grant permission</string>
     <string name="open_app_settings">App settings</string>
-    <string name="overlay_enabled">Overlay enabled</string>
     <string name="overlay_permission_denied">Permission to display over other apps was not granted</string>
     <string name="overlay_gestures">Overlay enabled: drag to move, long-press to close</string>
     <string name="overlay_service_failed">Unable to start the overlay service: %1$s</string>

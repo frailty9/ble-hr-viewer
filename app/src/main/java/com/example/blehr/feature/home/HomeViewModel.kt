@@ -1,13 +1,15 @@
-package com.example.blehr
+package com.example.blehr.feature.home
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import com.example.blehr.ble.ScannedDevice
+import com.example.blehr.data.heartrate.HeartRateRepository
+import com.example.blehr.data.heartrate.HeartRateState
 import kotlinx.coroutines.flow.StateFlow
 
-class HeartRateViewModel(application: Application) : AndroidViewModel(application) {
+class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = HeartRateRepository.get(application)
-    val ui: StateFlow<HeartRateUiState> = repository.ui
+    val ui: StateFlow<HeartRateState> = repository.ui
 
     fun startScan() = repository.startScan()
 
