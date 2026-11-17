@@ -1,6 +1,5 @@
 package com.example.blehr
 
-import android.content.Context
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -13,10 +12,6 @@ import com.example.blehr.feature.home.HomeViewModel
 
 class MainActivity : ComponentActivity() {
     private val homeViewModel: HomeViewModel by viewModels()
-
-    override fun attachBaseContext(newBase: Context) {
-        super.attachBaseContext(LanguageSettings.localizedContext(newBase))
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

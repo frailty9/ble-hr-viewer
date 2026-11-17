@@ -38,7 +38,7 @@
 
 需要 Android 8.0 及以上、支持 BLE 的手机，以及能够提供标准心率服务的设备。
 
-界面支持中文和英文，默认跟随系统语言；其他语言使用英文。在应用的“设置”页面可选择跟随系统、中文或 English，立即生效并保存。Android 13 及以上也可通过系统的应用语言设置选择。
+界面支持中文和英文，默认跟随系统语言；其他语言使用英文。在应用的“设置”页面可选择跟随系统、中文或 English，立即生效并保存；切换时原位更新页面，保留导航和动画状态。Android 13 及以上也可通过系统的应用语言设置选择。
 
 ## 使用
 
@@ -48,7 +48,7 @@
 4. 需要悬浮窗时，点击“授权并开启”，允许“显示在其他应用上层”后返回应用。
 5. 拖动悬浮窗移动位置，长按约 0.6 秒关闭；也可通过通知关闭。单击悬浮窗不执行操作。
 
-悬浮窗的颜色、透明度设置会保存在本机，并在运行时立即生效。
+悬浮窗的颜色、透明度设置会保存在本机，并在运行时立即生效。默认使用深灰色背景（30% 不透明度）和预设粉红色字体（65% 不透明度）；升级保留已有设置，“恢复默认”应用这组样式。
 
 点击主界面的“设置”，可选择界面语言，并调整悬浮窗外观。语言和外观设置无需授予蓝牙权限即可使用。
 
@@ -64,7 +64,7 @@
 | Navigation Compose | 2.8.9 |
 | Lifecycle | 2.8.3 |
 | Android SDK | compileSdk / targetSdk 35，minSdk 26 |
-| 应用版本 | 0.4.0（versionCode 12） |
+| 应用版本 | 0.4.1（versionCode 14） |
 
 使用 Android Studio 打开项目并配置 Android SDK，或在本机的 `local.properties` 中设置 `sdk.dir`。该文件不提交到 Git。
 
@@ -72,14 +72,14 @@ Windows：
 
 ```powershell
 .\gradlew.bat :app:assembleDebug
-adb install -r dist\ble-hr-viewer-0.4.0-debug.apk
+adb install -r dist\ble-hr-viewer-0.4.1-debug.apk
 ```
 
 Linux / macOS：
 
 ```sh
 ./gradlew :app:assembleDebug
-adb install -r dist/ble-hr-viewer-0.4.0-debug.apk
+adb install -r dist/ble-hr-viewer-0.4.1-debug.apk
 ```
 
 构建完成后会自动将带产品名和版本号的 APK 导出到 `dist/`，版本号取自构建配置。
@@ -91,8 +91,8 @@ adb install -r dist/ble-hr-viewer-0.4.0-debug.apk
 源码位于 `app/src/main/java/com/example/blehr/`，测试目录按相同包结构组织。
 
 ```text
-MainActivity.kt       系统窗口、语言 Context、setContent
-BleHrApp.kt           主题、应用根容器和回调组装
+MainActivity.kt       系统窗口、setContent
+BleHrApp.kt           本地化资源、主题、应用根容器和回调组装
 navigation/          类型安全路由、NavHost、250ms 进出动画
 feature/home/        主页面布局、Route、ViewModel、权限引导
   components/        标题栏、BPM、趋势、设备、悬浮窗入口、诊断、帮助
@@ -134,8 +134,8 @@ Windows 使用以下命令；Linux / macOS 将 `.\gradlew.bat` 替换为 `./grad
 ```
 
 - 发布前核对 `app/build.gradle.kts` 中的 `versionCode`、`versionName` 和本文件的版本信息。
-- Debug APK 用于本地测试，导出为 `ble-hr-viewer-0.4.0-debug.apk`。
-- 当前未配置 release 签名，`assembleRelease` 导出的是 `ble-hr-viewer-0.4.0-unsigned.apk`；正式分发前需使用维护者自己的签名密钥生成签名 APK，签名后的正式包命名为 `ble-hr-viewer-0.4.0.apk`。
+- Debug APK 用于本地测试，导出为 `ble-hr-viewer-0.4.1-debug.apk`。
+- 当前未配置 release 签名，`assembleRelease` 导出的是 `ble-hr-viewer-0.4.1-unsigned.apk`；正式分发前需使用维护者自己的签名密钥生成签名 APK，签名后的正式包命名为 `ble-hr-viewer-0.4.1.apk`。
 - 签名密钥、密码和本机配置不入库。安装包及其 SHA-256 校验值作为发布附件提供，构建产物不提交到 Git。
 - 在真机上检查设备扫描、心率订阅、断开连接，以及悬浮窗的授权、后台显示、拖动和长按关闭。
 
