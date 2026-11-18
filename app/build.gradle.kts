@@ -15,11 +15,11 @@ val releaseSigningProperties = providers
     }
 
 android {
-    namespace = "com.example.blehr"
+    namespace = "io.github.frailty9.blehr"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.blehr"
+        applicationId = "io.github.frailty9.blehr"
         minSdk = 26
         targetSdk = 35
         versionCode = 21
