@@ -78,7 +78,7 @@ aapt dump permissions dist\ble-hr-viewer-1.0.0.apk
 首个正式版本。
 
 - 包名：io.github.frailty9.blehr（与 0.4.x 分别安装，旧版本地设置不会迁移）
-- 版本：1.0.0（versionCode 21）
+- 版本：1.0.0（versionCode 22）
 - 安装包：ble-hr-viewer-1.0.0.apk
 - SHA-256：<填写>
 - 签名证书 SHA-256：<填写>

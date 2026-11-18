@@ -73,7 +73,7 @@
 | Navigation Compose | 2.8.9 |
 | Lifecycle | 2.8.3 |
 | Android SDK | compileSdk / targetSdk 35，minSdk 26 |
-| 应用版本 | 1.0.0-SNAPSHOT（versionCode 21） |
+| 应用版本 | 1.0.0（versionCode 22） |
 | 应用包名 | `io.github.frailty9.blehr` |
 
 1.0.0 起应用包名为 `io.github.frailty9.blehr`。0.4.x 使用 `com.example.blehr`，Android 会将 1.0.0 作为独立应用安装，旧版的本地设置和权限不会迁移。可以保留旧版，也可以在确认新版可用后卸载旧版。
@@ -84,14 +84,14 @@ Windows：
 
 ```powershell
 .\gradlew.bat :app:assembleDebug
-adb install -r dist\ble-hr-viewer-1.0.0-SNAPSHOT-debug.apk
+adb install -r dist\ble-hr-viewer-1.0.0-debug.apk
 ```
 
 Linux / macOS：
 
 ```sh
 ./gradlew :app:assembleDebug
-adb install -r dist/ble-hr-viewer-1.0.0-SNAPSHOT-debug.apk
+adb install -r dist/ble-hr-viewer-1.0.0-debug.apk
 ```
 
 构建完成后会自动将带产品名和版本号的 APK 导出到 `dist/`，版本号取自构建配置。
@@ -150,7 +150,7 @@ Windows 使用以下命令；Linux / macOS 将 `.\gradlew.bat` 替换为 `./grad
 
 - 发布前核对 `app/build.gradle.kts` 中的 `versionCode`、`versionName` 和本文件的版本信息。
 - 发布前对照[发布检查清单](docs/compliance/RELEASE_CHECKLIST.md)逐项确认。
-- Debug APK 用于本地测试，导出为 `ble-hr-viewer-1.0.0-SNAPSHOT-debug.apk`。
+- Debug APK 用于本地测试，导出为 `ble-hr-viewer-1.0.0-debug.apk`。
 - 安装包及其 SHA-256 校验值作为发布附件提供，构建产物不提交到 Git。
 - 在真机上检查首次启动隐私提示、同意与撤回流程、设备扫描、心率订阅、断开连接，以及悬浮窗的授权、后台显示、拖动和长按关闭。
 
@@ -158,10 +158,10 @@ Windows 使用以下命令；Linux / macOS 将 `.\gradlew.bat` 替换为 `./grad
 
 将根目录的 [`keystore.properties.example`](keystore.properties.example) 复制为 `keystore.properties`，以 UTF-8 保存。填入 `storeFile`（密钥库路径）、`storePassword`（密钥库密码）、`keyAlias`（密钥别名）和 `keyPassword`（密钥密码，省略时使用 `storePassword`）。相对路径以项目根目录为准。Windows 路径可写成 `D:/Keys/ble-hr-viewer-release.jks`，文件内容中的字面反斜杠要写成 `\\`。
 
-配置完成后执行 `.\gradlew.bat :app:assembleRelease`，签名 APK 会导出为 `dist/ble-hr-viewer-1.0.0-SNAPSHOT.apk`。如果没有 `keystore.properties`，该命令仍可构建，导出的文件带有 `-unsigned.apk` 后缀。使用 Android SDK Build Tools 中的 `apksigner` 验证签名并查看证书指纹：
+配置完成后执行 `.\gradlew.bat :app:assembleRelease`，签名 APK 会导出为 `dist/ble-hr-viewer-1.0.0.apk`。如果没有 `keystore.properties`，该命令仍可构建，导出的文件带有 `-unsigned.apk` 后缀。使用 Android SDK Build Tools 中的 `apksigner` 验证签名并查看证书指纹：
 
 ```powershell
-apksigner verify --print-certs dist/ble-hr-viewer-1.0.0-SNAPSHOT.apk
+apksigner verify --print-certs dist/ble-hr-viewer-1.0.0.apk
 ```
 
 `keystore.properties` 和密钥库只保存在本机。Git 已忽略该配置文件以及 `.jks`、`.keystore` 等常用密钥库格式。
