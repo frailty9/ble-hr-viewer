@@ -1,5 +1,9 @@
 import com.android.build.api.artifact.SingleArtifact
 import java.util.Properties
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.process.CommandLineArgumentProvider
+
+val appFilingNumber = providers.gradleProperty("app.filingNumber").orElse("").get()
 
 plugins {
     id("com.android.application")
@@ -14,16 +18,30 @@ val releaseSigningProperties = providers
         Properties().apply { load(contents.removePrefix("\uFEFF").reader()) }
     }
 
+val privacyPolicy = rootProject.layout.projectDirectory.file("PRIVACY.md")
+val privacyConsentVersion = providers.fileContents(privacyPolicy).asText.map { text ->
+    val declarations = text.lineSequence().map(String::trim)
+        .filter { it.startsWith("<!-- consent-version:") }.toList()
+    val pattern = Regex("<!-- consent-version: ([1-9][0-9]*) -->")
+    val version = declarations.singleOrNull()?.let(pattern::matchEntire)
+        ?.groupValues?.get(1)?.toIntOrNull()
+    version ?: throw GradleException(
+        "PRIVACY.md must contain exactly one <!-- consent-version: N --> with a positive integer version.",
+    )
+}
+
 android {
-    namespace = "com.example.blehr"
+    namespace = "io.github.frailty9.blehr"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.blehr"
+        applicationId = "io.github.frailty9.blehr"
         minSdk = 26
         targetSdk = 35
-        versionCode = 20
-        versionName = "0.4.4"
+        versionCode = 22
+        versionName = "1.0.0"
+        buildConfigField("String", "APP_FILING_NUMBER", "\"$appFilingNumber\"")
+        buildConfigField("int", "PRIVACY_CONSENT_VERSION", privacyConsentVersion.get().toString())
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -65,6 +83,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     bundle {
@@ -80,8 +99,80 @@ android {
     }
 }
 
+// These two documents use a bilingual title and one section for each locale.
+abstract class GenerateLegalAssets : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val documents: ConfigurableFileCollection
+
+    @get:OutputDirectory
+    abstract val outputDirectory: DirectoryProperty
+
+    @TaskAction
+    fun generate() {
+        val assets = outputDirectory.dir("legal").get().asFile.apply { mkdirs() }
+        for (document in documents.files) {
+            val lines = document.readLines(Charsets.UTF_8)
+            val title = lines.firstOrNull()?.takeIf { it.startsWith("# ") }
+                ?.removePrefix("# ")?.split(" / ").orEmpty()
+            val chinese = lines.indexOf("## 中文")
+            val english = lines.indexOf("## English")
+            require(title.size == 2 && title.none(String::isBlank) && chinese > 0 && english > chinese &&
+                lines.count { it == "## 中文" || it == "## English" } == 2
+            ) { "${document.name} must have a bilingual title followed by ‘## 中文’ and ‘## English’ sections." }
+            val name = document.nameWithoutExtension.lowercase()
+            writeAsset(assets.resolve("${name}_zh.txt"), title[0], lines.subList(chinese + 1, english))
+            writeAsset(assets.resolve("${name}_en.txt"), title[1], lines.drop(english + 1))
+        }
+    }
+
+    private fun writeAsset(file: File, title: String, section: List<String>) {
+        val body = section.mapNotNull { line ->
+            when {
+                line == "---" -> null
+                line.startsWith("|") -> {
+                    val cells = line.trim('|').split('|').map(String::trim)
+                    if (cells.all { it.matches(TABLE_RULE) }) null else cells.joinToString(" · ")
+                }
+                else -> line.replace(HEADING, "")
+            }?.replace(LINK, "$1")?.replace(BOLD, "$1")?.replace(INLINE_CODE, "$1")
+        }.joinToString("\n").trim()
+        require(body.isNotEmpty()) { "Missing legal document text for ${file.name}." }
+        file.writeText("$title\n\n$body\n", Charsets.UTF_8)
+    }
+
+    private companion object {
+        val TABLE_RULE = Regex(":?-{3,}:?")
+        val HEADING = Regex("^#{1,6}\\s+")
+        val LINK = Regex("\\[([^]]+)]\\([^)]+\\)")
+        val BOLD = Regex("\\*\\*([^*]+)\\*\\*")
+        val INLINE_CODE = Regex("`([^`]+)`")
+    }
+}
+
+abstract class LegalAssetTestArguments : CommandLineArgumentProvider {
+    @get:InputDirectory
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val assetDirectory: DirectoryProperty
+
+    override fun asArguments(): Iterable<String> =
+        listOf("-Dblehr.legalAssets=${assetDirectory.dir("legal").get().asFile.absolutePath}")
+}
+
+val generateLegalAssets = tasks.register<GenerateLegalAssets>("generateLegalAssets") {
+    documents.from(privacyPolicy, rootProject.layout.projectDirectory.file("AGREEMENT.md"))
+}
+
+val legalAssetTestArguments = objects.newInstance<LegalAssetTestArguments>().apply {
+    assetDirectory.set(generateLegalAssets.flatMap { it.outputDirectory })
+}
+tasks.withType<Test>().configureEach {
+    jvmArgumentProviders.add(legalAssetTestArguments)
+}
+
 androidComponents {
     onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(generateLegalAssets, GenerateLegalAssets::outputDirectory)
         val variantTitle = variant.name.replaceFirstChar { it.uppercaseChar() }
         val versionName = variant.outputs.single().versionName.get()
         val buildSuffix = if (variant.buildType == "release") "" else "-${variant.name}"

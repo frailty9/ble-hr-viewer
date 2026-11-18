@@ -18,6 +18,7 @@
   <a href="#构建">构建与安装</a> ·
   <a href="#检查与发布">发布检查</a> ·
   <a href="#权限与数据">权限与数据</a> ·
+  <a href="#合规与发布">合规与发布</a> ·
   <a href="#许可证">许可证</a>
 </p>
 
@@ -47,8 +48,8 @@
 ## 使用
 
 1. 确认心率设备已启用心率广播。如需手动开启，请查看设备设置或配套应用。
-2. 启动应用，授予蓝牙相关权限。Android 11 及以下还需要定位权限并开启系统定位服务。
-3. 点击“扫描 BLE”，选择设备连接。设备旁的 `HR` 标记表示其广播包含标准心率服务。
+2. 首次启动时阅读隐私提示，同意后进入主页。
+3. 点击“扫描 BLE”。首次扫描时按系统提示授权，授权后自动开始扫描。Android 11 及以下需授予定位权限并开启系统定位服务。选择设备连接，设备旁的 `HR` 标记表示其广播包含标准心率服务。
 4. 点击心率卡片右上角的窗口图标开启悬浮窗。若系统要求授权，允许“显示在其他应用上层”后返回应用。
 5. 拖动悬浮窗移动位置。关闭时可点击心率卡片右上角的关闭图标、长按悬浮窗约 0.6 秒，或使用通知中的关闭操作。单击悬浮窗不执行操作。
 
@@ -58,7 +59,7 @@
 
 主页保留实时心率、心率趋势和附近设备，内容居中且最大宽度为 1120dp。扣除安全区和左右留白后，可用宽度达到 680dp 时使用双栏，左侧趋势图随可用高度扩展。附近设备卡片填充剩余空间，结果较多时可向下滚动。
 
-点击主界面的“设置”，可选择界面语言、主题，调整悬浮窗外观和蓝牙超时，并查看原始包、错误包和使用提示。设置内容居中且最大宽度为 640dp，标题与返回按钮不随内容滚动。设置无需授予蓝牙权限即可使用；悬浮窗的“恢复默认”只重置其外观。
+点击主界面的“设置”，可选择界面语言、主题，调整悬浮窗外观和蓝牙超时，查看原始包、错误包和使用提示，并在“关于与合规”中查看版本、隐私政策、用户协议、开源许可及撤回同意。设置内容居中且最大宽度为 640dp，标题与返回按钮不随内容滚动。设置无需授予蓝牙权限即可使用；悬浮窗的“恢复默认”只重置其外观。
 
 ## 构建
 
@@ -72,7 +73,10 @@
 | Navigation Compose | 2.8.9 |
 | Lifecycle | 2.8.3 |
 | Android SDK | compileSdk / targetSdk 35，minSdk 26 |
-| 应用版本 | 0.4.4（versionCode 20） |
+| 应用版本 | 1.0.0（versionCode 22） |
+| 应用包名 | `io.github.frailty9.blehr` |
+
+1.0.0 起应用包名为 `io.github.frailty9.blehr`。0.4.x 使用 `com.example.blehr`，Android 会将 1.0.0 作为独立应用安装，旧版的本地设置和权限不会迁移。可以保留旧版，也可以在确认新版可用后卸载旧版。
 
 使用 Android Studio 打开项目并配置 Android SDK，或在本机的 `local.properties` 中设置 `sdk.dir`。该文件不提交到 Git。
 
@@ -80,14 +84,14 @@ Windows：
 
 ```powershell
 .\gradlew.bat :app:assembleDebug
-adb install -r dist\ble-hr-viewer-0.4.4-debug.apk
+adb install -r dist\ble-hr-viewer-1.0.0-debug.apk
 ```
 
 Linux / macOS：
 
 ```sh
 ./gradlew :app:assembleDebug
-adb install -r dist/ble-hr-viewer-0.4.4-debug.apk
+adb install -r dist/ble-hr-viewer-1.0.0-debug.apk
 ```
 
 构建完成后会自动将带产品名和版本号的 APK 导出到 `dist/`，版本号取自构建配置。
@@ -145,21 +149,38 @@ Windows 使用以下命令；Linux / macOS 将 `.\gradlew.bat` 替换为 `./grad
 ```
 
 - 发布前核对 `app/build.gradle.kts` 中的 `versionCode`、`versionName` 和本文件的版本信息。
-- Debug APK 用于本地测试，导出为 `ble-hr-viewer-0.4.4-debug.apk`。
+- 发布前对照[发布检查清单](docs/compliance/RELEASE_CHECKLIST.md)逐项确认。
+- Debug APK 用于本地测试，导出为 `ble-hr-viewer-1.0.0-debug.apk`。
 - 安装包及其 SHA-256 校验值作为发布附件提供，构建产物不提交到 Git。
-- 在真机上检查设备扫描、心率订阅、断开连接，以及悬浮窗的授权、后台显示、拖动和长按关闭。
+- 在真机上检查首次启动隐私提示、同意与撤回流程、设备扫描、心率订阅、断开连接，以及悬浮窗的授权、后台显示、拖动和长按关闭。
 
 ### 配置 Release 签名
 
 将根目录的 [`keystore.properties.example`](keystore.properties.example) 复制为 `keystore.properties`，以 UTF-8 保存。填入 `storeFile`（密钥库路径）、`storePassword`（密钥库密码）、`keyAlias`（密钥别名）和 `keyPassword`（密钥密码，省略时使用 `storePassword`）。相对路径以项目根目录为准。Windows 路径可写成 `D:/Keys/ble-hr-viewer-release.jks`，文件内容中的字面反斜杠要写成 `\\`。
 
-配置完成后执行 `.\gradlew.bat :app:assembleRelease`，签名 APK 会导出为 `dist/ble-hr-viewer-0.4.4.apk`。如果没有 `keystore.properties`，该命令仍可构建，导出的文件带有 `-unsigned.apk` 后缀。使用 Android SDK Build Tools 中的 `apksigner` 验证签名并查看证书指纹：
+配置完成后执行 `.\gradlew.bat :app:assembleRelease`，签名 APK 会导出为 `dist/ble-hr-viewer-1.0.0.apk`。如果没有 `keystore.properties`，该命令仍可构建，导出的文件带有 `-unsigned.apk` 后缀。使用 Android SDK Build Tools 中的 `apksigner` 验证签名并查看证书指纹：
 
 ```powershell
-apksigner verify --print-certs dist/ble-hr-viewer-0.4.4.apk
+apksigner verify --print-certs dist/ble-hr-viewer-1.0.0.apk
 ```
 
 `keystore.properties` 和密钥库只保存在本机。Git 已忽略该配置文件以及 `.jks`、`.keystore` 等常用密钥库格式。
+
+## 合规与发布
+
+- 隐私政策见 [PRIVACY.md](PRIVACY.md)，用户协议见 [AGREEMENT.md](AGREEMENT.md)。构建会从这两个文件的「中文」和「English」章节生成随 APK 打包的离线正文。修改条款时请直接编辑这两个文件。
+- 隐私政策公网地址（用于分发页或后续商店）：<https://github.com/frailty9/ble-hr-viewer/blob/main/PRIVACY.md>
+- 应用首次启动展示隐私提示，同意后才请求权限；设置页可查看法律文本并撤回同意。
+- 隐私政策有重大变更时，在 `PRIVACY.md` 源码顶部的 `consent-version` 注释中递增整数版本。新版会重新征求旧版用户的同意。校对和排版调整沿用原整数版本。
+- 在中国境内分发前，按 [APP 备案指引](docs/compliance/APP_FILING.md)办理备案。取得备案号后写入 `gradle.properties`：
+
+  ```properties
+  app.filingNumber=京ICP备XXXXXXXX号-XXA
+  ```
+
+  重新构建后，备案号会显示在“设置 → 关于与合规”。
+- 发布流程、签名校验、权限自查与发布说明模板见[发布检查清单](docs/compliance/RELEASE_CHECKLIST.md)。
+- 本应用不是医疗器械，心率数据仅供参考，不得用于诊断或治疗。
 
 ## 权限与数据
 
@@ -168,9 +189,9 @@ apksigner verify --print-certs dist/ble-hr-viewer-0.4.4.apk
 | 附近的设备（Android 12+） | 扫描、连接 BLE 设备 |
 | 定位（Android 8–11） | 系统对 BLE 扫描的要求 |
 | 显示在其他应用上层 | 显示心率悬浮窗 |
-| 前台服务、通知 | 悬浮窗运行时保持设备连接并提供关闭入口 |
+| 前台服务、通知 | 开启悬浮窗时请求；保持设备连接并提供关闭入口 |
 
-应用未声明网络权限。心率数据在进程内处理，主题、外观设置及最近成功连接的蓝牙设备信息保存在应用的 SharedPreferences 中。调试日志可能包含设备名称、地址和原始心率包，分享日志前请删除个人设备信息。
+应用未声明网络权限，也未集成广告、统计或第三方数据收集 SDK。心率数据在进程内处理，主题、外观设置及最近成功连接的蓝牙设备信息保存在应用的 SharedPreferences 中；系统云备份与设备迁移已关闭。Release 版本不输出设备地址和心率原始数据日志；Debug 日志可能包含这些信息，分享前请删除个人设备信息。首次启动需同意[隐私政策](PRIVACY.md)与[用户协议](AGREEMENT.md)，可在“设置 → 关于与合规”查看或撤回。
 
 ## 已知限制
 
@@ -186,3 +207,5 @@ apksigner verify --print-certs dist/ble-hr-viewer-0.4.4.apk
 项目原创代码采用 [MIT License](LICENSE)，Copyright (c) 2026 花殇。
 
 第三方组件保留各自的许可证，见 [第三方声明](THIRD_PARTY_NOTICES.md)。
+
+隐私与使用条款见[隐私政策](PRIVACY.md)和[用户协议](AGREEMENT.md)。

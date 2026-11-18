@@ -1,0 +1,23 @@
+Third-party notices
+
+The MIT license applies to the original code of BLE HR Viewer. Third-party
+components retain their own licenses and copyright notices.
+
+Gradle Wrapper
+The bundled gradlew, gradlew.bat, and gradle/wrapper/gradle-wrapper.jar are
+distributed by the Gradle project under the Apache License 2.0. Their original
+notices are retained. The full license text follows in this document.
+
+AndroidX, Jetpack Compose, Kotlin, and Kotlin coroutines
+These components are licensed under the Apache License 2.0 and retain their
+upstream notices. Dependency declarations are in build.gradle.kts and
+app/build.gradle.kts.
+
+Lucide icons
+The overlay window and close drawables are adapted from Lucide's
+picture-in-picture-2 (ISC) and x (Feather, MIT) icons. Their license notices
+follow in this document.
+
+Full license texts
+The following sections contain the Apache License 2.0, the Lucide notices, and
+the MIT license that applies to this project.
