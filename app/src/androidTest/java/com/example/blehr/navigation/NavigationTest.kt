@@ -10,14 +10,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
@@ -31,6 +34,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
@@ -42,7 +47,10 @@ import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
 import com.example.blehr.MainActivity
 import com.example.blehr.R
+import com.example.blehr.ble.HeartRateSample
 import com.example.blehr.ble.ScannedDevice
+import com.example.blehr.ble.SensorContact
+import com.example.blehr.data.heartrate.ConnectionPhase
 import com.example.blehr.data.heartrate.HeartRateState
 import com.example.blehr.data.settings.AppLanguage
 import com.example.blehr.data.settings.AppTheme
@@ -57,6 +65,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -125,7 +134,7 @@ class NavigationTest {
                 HeartRateState(devices = devices)
             }
             // Constrain height to exercise real screen scrolling on phones of any size.
-            Box(Modifier.fillMaxWidth().height(600.dp).background(MaterialTheme.colorScheme.background)) {
+            Box(Modifier.widthIn(max = 600.dp).fillMaxWidth().height(600.dp).background(MaterialTheme.colorScheme.background)) {
                 if (useTestController) {
                     val context = LocalContext.current
                     val testController = remember {
@@ -175,6 +184,59 @@ class NavigationTest {
 
     private fun scrollPosition(tag: String): Float = compose.onNodeWithTag(tag)
         .fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
+
+    @Test
+    fun shortWideWindowScrollsColumnsIndependentlyAtLargeFontScale() {
+        compose.runOnUiThread { activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE }
+        compose.waitUntil(10_000) {
+            activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        }
+        assumeTrue("The emulator or phone must support a wide landscape window", activity.resources.configuration.screenWidthDp >= 760)
+        val name = "Long heart rate monitor name for adaptive layout verification"
+        val address = "00:11:22:33:44:10"
+        val adapter = activity.getSystemService(BluetoothManager::class.java).adapter
+        val state = HeartRateState(
+            connection = ConnectionPhase.CONNECTED,
+            connectedName = name,
+            connectedAddress = address,
+            sample = HeartRateSample(123, SensorContact.DETECTED, null, listOf(500), 0, byteArrayOf(), emptyList(), 0L),
+            history = listOf(99, 105, 118, 123),
+            devices = (10..25).map { index ->
+                val deviceAddress = "00:11:22:33:44:$index"
+                ScannedDevice(adapter.getRemoteDevice(deviceAddress), "Preview HR $index", deviceAddress, -55, true)
+            },
+        )
+        compose.runOnUiThread {
+            activity.setContent {
+                val density = LocalDensity.current.density
+                CompositionLocalProvider(LocalDensity provides Density(density, 1.5f)) {
+                    BleHrTheme {
+                        Box(Modifier.fillMaxWidth().height(400.dp)) { HomeContent(state) {} }
+                    }
+                }
+            }
+        }
+        val readout = compose.onNodeWithText("123").assertIsDisplayed()
+        val toggle = compose.onNodeWithContentDescription(activity.getString(R.string.overlay_show)).assertIsDisplayed()
+        val readoutBounds = readout.fetchSemanticsNode().boundsInRoot
+        val toggleBounds = toggle.fetchSemanticsNode().boundsInRoot
+        assertTrue(!readoutBounds.overlaps(toggleBounds))
+        val summary = compose.onNodeWithText("$name · $address")
+        val textLayout = mutableListOf<TextLayoutResult>()
+        summary.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(textLayout) }
+        assertTrue(textLayout.single().lineCount > 1)
+        assertTrue(!textLayout.single().hasVisualOverflow)
+
+        val left = "home_left_scroll"
+        val right = "home_right_scroll"
+        compose.onNodeWithText("Preview HR 25").performScrollTo().assertIsDisplayed()
+        val rightPosition = scrollPosition(right)
+        assertTrue(rightPosition > 0)
+        assertEquals(0f, scrollPosition(left), 1f)
+        compose.onNodeWithTag(left).performSemanticsAction(SemanticsActions.ScrollBy) { it(0f, 160f) }
+        assertTrue(scrollPosition(left) > 0)
+        assertEquals(rightPosition, scrollPosition(right), 1f)
+    }
 
     @Test
     fun repeatedSettingsNavigationCreatesOnlyOneBackStackEntry() {
@@ -259,7 +321,12 @@ class NavigationTest {
             .map { compose.onNodeWithText(activity.getString(it)) }
         movedCards.forEach { it.assertDoesNotExist() }
         compose.onNodeWithContentDescription(settingsLabel).performClick()
+        val back = compose.onNodeWithContentDescription(backLabel).assertIsDisplayed()
+        val initialBackBounds = back.fetchSemanticsNode().boundsInRoot
         movedCards.forEach { it.performScrollTo().assertIsDisplayed() }
+        assertEquals(initialBackBounds, back.assertIsDisplayed().fetchSemanticsNode().boundsInRoot)
+        back.performClick()
+        compose.onNodeWithTag("home_screen").assertIsDisplayed()
     }
 
     @Test
@@ -285,8 +352,8 @@ class NavigationTest {
         compose.waitUntil(10_000) {
             activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         }
-        compose.onNodeWithTag("home_left_scroll").assertIsDisplayed()
-        compose.onNodeWithTag("home_right_scroll").assertIsDisplayed()
+        // The fixture stays under the width threshold even when rotated.
+        compose.onNodeWithTag("home_scroll").assertIsDisplayed()
         assertWindowRadius()
     }
 

@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -54,17 +56,21 @@ fun SettingsScreen(
     heartRateTimeoutSeconds: Int = DEFAULT_HEART_RATE_TIMEOUT_SECONDS,
     onHeartRateTimeoutChanged: (Int) -> Unit = {},
 ) {
-    Box(Modifier.fillMaxSize().testTag("settings_screen")) {
+    Box(
+        Modifier.fillMaxSize().testTag("settings_screen")
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .padding(horizontal = PageMargin),
+        contentAlignment = Alignment.TopCenter,
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.safeDrawing)
-                .testTag("settings_scroll")
-                .verticalScroll(rememberScrollState())
-                .padding(PageMargin),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+                .widthIn(max = 640.dp)
+                .fillMaxSize(),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = PageMargin),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 IconButton(onClick = onBack) {
                     Icon(
                         painter = painterResource(R.drawable.ic_arrow_back),
@@ -77,16 +83,22 @@ fun SettingsScreen(
                     modifier = Modifier.padding(start = 8.dp),
                 )
             }
-            LanguageSelector(language, onLanguageSelected)
-            ThemeSelector(theme, onThemeSelected)
-            OverlayAppearanceCard(
-                appearance, onBackgroundColorChanged, onBackgroundAlphaChanged,
-                onFontColorChanged, onFontAlphaChanged, onResetAppearance,
-            )
-            BluetoothConnectionSettings(heartRateTimeoutSeconds, onHeartRateTimeoutChanged)
-            PacketCard(heartRateState)
-            ErrorCard(heartRateState)
-            HelpCard()
+            Column(
+                modifier = Modifier.weight(1f).fillMaxWidth().testTag("settings_scroll")
+                    .verticalScroll(rememberScrollState()).padding(vertical = PageMargin),
+                verticalArrangement = Arrangement.spacedBy(PageMargin),
+            ) {
+                LanguageSelector(language, onLanguageSelected)
+                ThemeSelector(theme, onThemeSelected)
+                OverlayAppearanceCard(
+                    appearance, onBackgroundColorChanged, onBackgroundAlphaChanged,
+                    onFontColorChanged, onFontAlphaChanged, onResetAppearance,
+                )
+                BluetoothConnectionSettings(heartRateTimeoutSeconds, onHeartRateTimeoutChanged)
+                PacketCard(heartRateState)
+                ErrorCard(heartRateState)
+                HelpCard()
+            }
         }
     }
 }

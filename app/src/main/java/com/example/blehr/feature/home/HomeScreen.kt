@@ -1,6 +1,7 @@
 package com.example.blehr.feature.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,11 +17,14 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
@@ -44,73 +48,102 @@ fun HomeScreen(
     onOpenBluetoothSettings: () -> Unit,
     onToggleOverlay: () -> Unit,
 ) {
-    // Declare each layout's scroll state outside the orientation branch so it survives rotation.
-    val portraitScroll = rememberScrollState()
-    val landscapeLeftScroll = rememberScrollState()
-    val landscapeRightScroll = rememberScrollState()
+    // Keep each scroll position when a resize switches the layout.
+    val singleColumnScroll = rememberScrollState()
+    val leftColumnScroll = rememberScrollState()
+    val rightColumnScroll = rememberScrollState()
     // This space belongs to the content, so it enters the viewport only at the end of scrolling.
     val bottomContentSpace = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
         .asPaddingValues().calculateBottomPadding() + PageMargin
-    Column(
+    Box(
         modifier = Modifier
             .testTag("home_screen")
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
             .padding(horizontal = PageMargin),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        AppHeader(state, onOpenSettings)
-        Spacer(Modifier.height(10.dp))
-        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-            val viewportHeight = constraints.maxHeight
-            val landscape = maxWidth > maxHeight
-            val nearbyDevices: @Composable () -> Unit = {
-                DeviceCard(state, onStartScan, onStopScan, onConnect, onDisconnect, onOpenBluetoothSettings)
-            }
-            if (landscape) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1.15f)
-                            .fillMaxHeight()
-                            .testTag("home_left_scroll")
-                            .verticalScroll(landscapeLeftScroll),
+        Column(Modifier.widthIn(max = 1120.dp).fillMaxSize()) {
+            AppHeader(state, onOpenSettings)
+            Spacer(Modifier.height(10.dp))
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                val viewportHeight = constraints.maxHeight
+                val useTwoColumns = maxWidth >= 680.dp
+                val nearbyDevices: @Composable () -> Unit = {
+                    DeviceCard(state, onStartScan, onStopScan, onConnect, onDisconnect, onOpenBluetoothSettings)
+                }
+                if (useTwoColumns) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        BpmCard(state, overlayVisible, onToggleOverlay)
-                        Spacer(Modifier.height(10.dp))
-                        TrendCard(state)
-                        Spacer(Modifier.height(bottomContentSpace))
+                        HeartRateColumn(
+                            modifier = Modifier
+                                .weight(1.15f)
+                                .fillMaxHeight()
+                                .testTag("home_left_scroll")
+                                .verticalScroll(leftColumnScroll),
+                            viewportHeight = viewportHeight,
+                            bottomSpace = { Spacer(Modifier.height(bottomContentSpace)) },
+                            bpmCard = { BpmCard(state, overlayVisible, onToggleOverlay) },
+                            state = state,
+                        )
+                        DeviceFillColumn(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .testTag("home_right_scroll")
+                                .verticalScroll(rightColumnScroll),
+                            viewportHeight = viewportHeight,
+                            bottomSpace = { Spacer(Modifier.height(bottomContentSpace)) },
+                            devices = nearbyDevices,
+                        )
                     }
+                } else {
                     DeviceFillColumn(
                         modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .testTag("home_right_scroll")
-                            .verticalScroll(landscapeRightScroll),
+                            .fillMaxSize()
+                            .testTag("home_scroll")
+                            .verticalScroll(singleColumnScroll),
                         viewportHeight = viewportHeight,
+                        top = {
+                            BpmCard(state, overlayVisible, onToggleOverlay)
+                            Spacer(Modifier.height(10.dp))
+                            TrendCard(state)
+                            Spacer(Modifier.height(10.dp))
+                        },
                         bottomSpace = { Spacer(Modifier.height(bottomContentSpace)) },
                         devices = nearbyDevices,
                     )
                 }
-            } else {
-                DeviceFillColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag("home_scroll")
-                        .verticalScroll(portraitScroll),
-                    viewportHeight = viewportHeight,
-                    top = {
-                        BpmCard(state, overlayVisible, onToggleOverlay)
-                        Spacer(Modifier.height(10.dp))
-                        TrendCard(state)
-                        Spacer(Modifier.height(10.dp))
-                    },
-                    bottomSpace = { Spacer(Modifier.height(bottomContentSpace)) },
-                    devices = nearbyDevices,
-                )
             }
+        }
+    }
+}
+
+@Composable
+private fun HeartRateColumn(
+    modifier: Modifier,
+    viewportHeight: Int,
+    bottomSpace: @Composable () -> Unit,
+    bpmCard: @Composable () -> Unit,
+    state: HeartRateState,
+) {
+    SubcomposeLayout(modifier) { constraints ->
+        val cardConstraints = constraints.copy(minHeight = 0)
+        val bpm = subcompose("bpm", bpmCard).single().measure(cardConstraints)
+        val bottom = subcompose("bottom", bottomSpace).single().measure(cardConstraints)
+        val trendTop = bpm.height + 10.dp.roundToPx()
+        val remaining = (viewportHeight - trendTop - bottom.height).coerceAtLeast(0)
+        val trend = subcompose("trend") {
+            TrendCard(state, availableHeight = remaining.toDp())
+        }.single().measure(cardConstraints)
+        val bottomY = trendTop + trend.height
+        val contentHeight = maxOf(viewportHeight, bottomY + bottom.height)
+        layout(constraints.maxWidth, contentHeight) {
+            bpm.placeRelative(0, 0)
+            trend.placeRelative(0, trendTop)
+            bottom.placeRelative(0, bottomY)
         }
     }
 }

@@ -103,9 +103,8 @@ internal fun DeviceCard(
             }
             Spacer(Modifier.height(10.dp))
             if (state.devices.isEmpty()) {
-                Spacer(Modifier.weight(1f))
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
@@ -122,7 +121,6 @@ internal fun DeviceCard(
                         textAlign = TextAlign.Center,
                     )
                 }
-                Spacer(Modifier.weight(1f))
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     for (device in state.devices) {
