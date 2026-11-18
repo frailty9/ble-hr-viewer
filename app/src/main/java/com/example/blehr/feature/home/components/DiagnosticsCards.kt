@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -26,6 +25,7 @@ import com.example.blehr.data.heartrate.HeartRateState
 import com.example.blehr.ui.components.StatusChip
 import com.example.blehr.ui.theme.ErrorRed
 import com.example.blehr.ui.theme.Ink
+import com.example.blehr.ui.theme.LocalAppShapes
 import com.example.blehr.ui.theme.Muted
 import com.example.blehr.ui.theme.WarnAmber
 import java.text.SimpleDateFormat
@@ -36,7 +36,7 @@ internal fun PacketCard(state: HeartRateState) {
     val sample = state.sample
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = LocalAppShapes.current.card,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.padding(18.dp)) {
@@ -92,7 +92,7 @@ internal fun ErrorCard(state: HeartRateState) {
     val formatter = remember(locale) { SimpleDateFormat("HH:mm:ss", locale) }
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = LocalAppShapes.current.card,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.padding(18.dp)) {

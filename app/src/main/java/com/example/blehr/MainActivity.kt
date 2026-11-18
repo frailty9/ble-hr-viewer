@@ -11,6 +11,7 @@ import androidx.activity.viewModels
 import com.example.blehr.data.settings.LanguageSettings
 import com.example.blehr.data.settings.SettingsRepository
 import com.example.blehr.feature.home.HomeViewModel
+import com.example.blehr.overlay.HeartRateOverlayService
 
 class MainActivity : ComponentActivity() {
     private val homeViewModel: HomeViewModel by viewModels()
@@ -28,6 +29,11 @@ class MainActivity : ComponentActivity() {
                 onDarkThemeChanged = ::updateSystemBars,
             )
         }
+    }
+
+    override fun onPostResume() {
+        super.onPostResume()
+        HeartRateOverlayService.restoreIfEnabled(this)
     }
 
     private fun updateSystemBars(dark: Boolean) {

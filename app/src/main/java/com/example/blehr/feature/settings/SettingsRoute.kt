@@ -17,6 +17,7 @@ fun SettingsRoute(
 ) {
     val appearance by viewModel.appearance.collectAsStateWithLifecycle()
     val theme by viewModel.theme.collectAsStateWithLifecycle()
+    val heartRateTimeoutSeconds by viewModel.heartRateTimeoutSeconds.collectAsStateWithLifecycle()
     val context = LocalContext.current
     // Read configuration so a framework app-locale change refreshes the selected segment too.
     LocalConfiguration.current
@@ -25,6 +26,8 @@ fun SettingsRoute(
         appearance = appearance,
         theme = theme,
         onThemeSelected = viewModel::setTheme,
+        heartRateTimeoutSeconds = heartRateTimeoutSeconds,
+        onHeartRateTimeoutChanged = viewModel::setHeartRateTimeoutSeconds,
         onLanguageSelected = onLanguageSelected,
         onBack = onBack,
         onBackgroundColorChanged = viewModel::setBackgroundColor,

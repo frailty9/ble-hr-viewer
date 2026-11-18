@@ -44,7 +44,10 @@ fun HomeRoute(viewModel: HomeViewModel, onOpenSettings: () -> Unit) {
     var overlayGranted by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
-    ) { granted = hasBlePermissions(context, blePermissions) }
+    ) {
+        granted = hasBlePermissions(context, blePermissions)
+        if (granted) HeartRateOverlayService.restoreIfEnabled(context)
+    }
     val overlayPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) {
@@ -73,6 +76,14 @@ fun HomeRoute(viewModel: HomeViewModel, onOpenSettings: () -> Unit) {
         }
     }
     if (granted) {
+        DisposableEffect(lifecycleOwner, viewModel) {
+            // A back stack entry can be composed before the home page is in the foreground.
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) viewModel.reconnectAtStartup()
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        }
         HomeScreen(
             state = state,
             overlayGranted = overlayGranted,

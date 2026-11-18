@@ -41,11 +41,29 @@ class HeartRateOverlayService : Service() {
         private const val CHANNEL_ID = "heart_rate_overlay"
         private const val NOTIFICATION_ID = 0x4852
         private const val ACTION_SHOW = "com.example.blehr.action.SHOW_OVERLAY"
+        private const val ACTION_RESTORE = "com.example.blehr.action.RESTORE_OVERLAY"
         private const val ACTION_HIDE = "com.example.blehr.action.HIDE_OVERLAY"
 
-        fun show(context: Context) {
-            val intent = Intent(context, HeartRateOverlayService::class.java)
-                .setAction(ACTION_SHOW)
+        fun show(context: Context) = start(context, ACTION_SHOW)
+
+        fun restoreIfEnabled(context: Context) {
+            if (!SettingsRepository.get(context).isOverlayEnabled || !Settings.canDrawOverlays(context)) return
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+                context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED &&
+                context.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED
+            ) return
+
+            try {
+                start(context, ACTION_RESTORE)
+            } catch (exc: IllegalStateException) {
+                Log.w(TAG, "Could not restore the overlay from this activity state", exc)
+            } catch (exc: SecurityException) {
+                Log.w(TAG, "Could not restore the overlay with current permissions", exc)
+            }
+        }
+
+        private fun start(context: Context, action: String) {
+            val intent = Intent(context, HeartRateOverlayService::class.java).setAction(action)
             ContextCompat.startForegroundService(context, intent)
         }
     }
@@ -83,19 +101,27 @@ class HeartRateOverlayService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_HIDE) {
-            stopSelf()
+            hideOverlay()
             return START_NOT_STICKY
         }
         if (!startForegroundCompat()) {
             stopSelf()
             return START_NOT_STICKY
         }
-        if (!Settings.canDrawOverlays(this)) {
-            Toast.makeText(this, localizedString(R.string.overlay_permission_denied), Toast.LENGTH_SHORT).show()
+        val restoring = intent?.action == ACTION_RESTORE
+        // A close action may have arrived while the activity's restore request was queued.
+        if (restoring && !settings.isOverlayEnabled) {
             stopSelf()
             return START_NOT_STICKY
         }
-        showOverlay()
+        if (!Settings.canDrawOverlays(this)) {
+            if (!restoring) {
+                Toast.makeText(this, localizedString(R.string.overlay_permission_denied), Toast.LENGTH_SHORT).show()
+            }
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        showOverlay(restoring)
         return START_NOT_STICKY
     }
 
@@ -152,11 +178,11 @@ class HeartRateOverlayService : Service() {
         }
     }
 
-    private fun showOverlay() {
+    private fun showOverlay(restoring: Boolean) {
         if (overlay != null) return
         val view = HeartRateOverlayView(
             this,
-            onClose = { stopSelf() },
+            onClose = ::hideOverlay,
             onDrag = ::dragBy,
         )
         val layout = WindowManager.LayoutParams(
@@ -180,12 +206,21 @@ class HeartRateOverlayService : Service() {
             params = layout
             view.bindAppearance(settings.appearance.value)
             view.bindState(repository.ui.value)
-            Toast.makeText(this, localizedString(R.string.overlay_gestures), Toast.LENGTH_SHORT).show()
+            if (!restoring) {
+                settings.setOverlayEnabled(true)
+                Toast.makeText(this, localizedString(R.string.overlay_gestures), Toast.LENGTH_SHORT).show()
+            }
         } catch (exc: Exception) {
             Log.e(TAG, "add overlay view failed", exc)
             Toast.makeText(this, localizedString(R.string.overlay_add_failed, exc.message ?: localizedString(R.string.unknown_error)), Toast.LENGTH_SHORT).show()
             stopSelf()
         }
+    }
+
+    private fun hideOverlay() {
+        settings.setOverlayEnabled(false)
+        removeOverlay()
+        stopSelf()
     }
 
     private fun dragBy(dx: Int, dy: Int) {

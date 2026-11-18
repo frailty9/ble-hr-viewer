@@ -11,6 +11,7 @@ enum class ConnectionPhase {
     SCANNING,
     CONNECTING,
     CONNECTED,
+    RECONNECTING,
     DISCONNECTED,
     ERROR,
 }
@@ -31,6 +32,9 @@ data class HeartRateState(
     val sample: HeartRateSample? = null,
     val history: List<Int> = emptyList(),
     val lastRawHex: String = "",
+    val scanError: UiText? = null,
     val parseErrorCount: Int = 0,
     val errors: List<ErrorEntry> = emptyList(),
-)
+) {
+    internal fun withoutLiveReadings() = copy(sample = null, history = emptyList())
+}

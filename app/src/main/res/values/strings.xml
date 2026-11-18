@@ -24,6 +24,7 @@
     <string name="no_contact_description">The device reports no skin contact. Heart rate data may be invalid.</string>
     <string name="trend_title">Heart rate trend</string>
     <string name="trend_waiting">Waiting for more readings…</string>
+    <string name="trend_no_live_data">No live heart rate data</string>
     <string name="trend_range_empty" tools:ignore="TypographyDashes">Range --</string>
     <string name="trend_range">Range %1$d – %2$d BPM</string>
     <string name="nearby_devices">Nearby devices</string>
@@ -74,10 +75,20 @@
     <string name="status_scanning">Scanning nearby BLE devices…</string>
     <string name="status_connecting">Connecting to %1$s…</string>
     <string name="status_disconnected">Disconnected</string>
-    <string name="status_waiting">Connected; waiting for heart rate readings</string>
     <string name="status_subscribed">Subscribed; waiting for readings (your device may stop sending them when not worn)</string>
+    <string name="status_startup_reconnect_failed">Couldn’t reach the last device. Tap Scan BLE to reconnect.</string>
     <string name="status_reconnect">%1$s. You can reconnect.</string>
-    <string name="status_bad_packet">Invalid packet ignored; listening continues</string>
+    <string name="phase_reconnecting">Reconnecting</string>
+    <string name="status_reconnecting">Heart rate data timed out. Reconnecting (%1$d/%2$d)…</string>
+    <string name="status_data_timeout">Heart rate data timed out. Select a device to reconnect.</string>
+    <string name="status_reconnect_exhausted">Could not restore heart rate data. Tap Scan BLE to reconnect.</string>
+    <string name="bluetooth_connection_settings">Bluetooth connection</string>
+    <string name="heart_rate_timeout_title">Heart rate data timeout</string>
+    <string name="heart_rate_timeout_value">%1$s: %2$s</string>
+    <plurals name="timeout_seconds">
+        <item quantity="one">%1$d second</item>
+        <item quantity="other">%1$d seconds</item>
+    </plurals>
     <string name="status_no_contact">No skin contact; heart rate may be invalid</string>
     <string name="status_zero_bpm">Received 0 BPM (not worn / no pulse)</string>
     <string name="status_warnings">Receiving · Warnings: %1$d</string>

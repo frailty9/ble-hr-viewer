@@ -20,6 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.blehr.R
+import com.example.blehr.ui.theme.LocalAppShapes
 import com.example.blehr.ui.theme.Muted
 
 @Composable
@@ -49,13 +50,13 @@ internal fun PermissionGate(
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(24.dp))
-        Button(onClick = onRequest) {
+        Button(onClick = onRequest, shape = LocalAppShapes.current.button) {
             Text(stringResource(R.string.grant_permission))
         }
-        TextButton(onClick = onOpenSettings) {
+        TextButton(onClick = onOpenSettings, shape = LocalAppShapes.current.button) {
             Text(stringResource(R.string.open_app_settings))
         }
-        TextButton(onClick = onOpenSettingsPage) {
+        TextButton(onClick = onOpenSettingsPage, shape = LocalAppShapes.current.button) {
             Text(stringResource(R.string.settings_title))
         }
     }

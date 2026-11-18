@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,6 +47,7 @@ import com.example.blehr.data.settings.OverlayColors
 import com.example.blehr.overlay.HeartRateOverlayView
 import com.example.blehr.ui.theme.Accent
 import com.example.blehr.ui.theme.Ink
+import com.example.blehr.ui.theme.LocalAppShapes
 import com.example.blehr.ui.theme.Muted
 import com.example.blehr.ui.theme.SurfaceRaised
 import kotlin.math.roundToInt
@@ -63,7 +63,7 @@ internal fun OverlayAppearanceCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = LocalAppShapes.current.card,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.padding(18.dp)) {
@@ -74,7 +74,7 @@ internal fun OverlayAppearanceCard(
                     color = Ink,
                 )
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = onReset) {
+                TextButton(onClick = onReset, shape = LocalAppShapes.current.button) {
                     Text(stringResource(R.string.reset_defaults))
                 }
             }

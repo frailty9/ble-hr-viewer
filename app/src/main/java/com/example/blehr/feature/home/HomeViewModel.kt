@@ -11,6 +11,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = HeartRateRepository.get(application)
     val ui: StateFlow<HeartRateState> = repository.ui
 
+    fun reconnectAtStartup() = repository.reconnectAtStartup()
+
     fun startScan() = repository.startScan()
 
     fun stopScan() = repository.stopScan()

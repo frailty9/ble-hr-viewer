@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +32,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.example.blehr.ui.theme.GridLine
 import com.example.blehr.ui.theme.Ink
+import com.example.blehr.ui.theme.LocalAppShapes
 import com.example.blehr.ui.theme.SurfaceRaised
 
 @Composable
@@ -45,9 +45,9 @@ internal fun AnimatedSegmentedSelector(
 ) {
     BoxWithConstraints(
         modifier = Modifier.fillMaxWidth().height(48.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(LocalAppShapes.current.segment)
             .background(SurfaceRaised)
-            .border(1.dp, GridLine, RoundedCornerShape(8.dp)),
+            .border(1.dp, GridLine, LocalAppShapes.current.segment),
     ) {
         val segmentWidth = maxWidth / labels.size
         val indicatorOffset by animateDpAsState(
@@ -59,7 +59,7 @@ internal fun AnimatedSegmentedSelector(
             Modifier.offset { IntOffset(indicatorOffset.roundToPx(), 0) }
                 .width(segmentWidth).fillMaxHeight()
                 .padding(3.dp)
-                .clip(RoundedCornerShape(6.dp))
+                .clip(LocalAppShapes.current.indicator)
                 .background(MaterialTheme.colorScheme.primaryContainer)
                 .testTag("${tagPrefix}_indicator"),
         )

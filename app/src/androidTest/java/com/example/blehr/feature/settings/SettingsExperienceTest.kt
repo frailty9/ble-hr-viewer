@@ -1,6 +1,8 @@
 package com.example.blehr.feature.settings
 
+import android.app.NotificationManager
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,9 +33,12 @@ import com.example.blehr.data.settings.LanguageSettings
 import com.example.blehr.data.settings.OverlayAppearance
 import com.example.blehr.data.settings.SettingsRepository
 import com.example.blehr.feature.settings.components.LanguageSelector
+import com.example.blehr.overlay.HeartRateOverlayService
 import com.example.blehr.ui.theme.BleHrTheme
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assume.assumeTrue
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -49,6 +54,7 @@ class SettingsExperienceTest {
     private lateinit var originalAppearance: OverlayAppearance
     private lateinit var originalLanguage: AppLanguage
     private lateinit var originalTheme: AppTheme
+    private var originalTimeoutSeconds = 5
 
     @Before
     fun launchActualActivity() {
@@ -57,6 +63,7 @@ class SettingsExperienceTest {
         repository = SettingsRepository.get(context)
         originalAppearance = repository.appearance.value
         originalTheme = repository.theme.value
+        originalTimeoutSeconds = repository.heartRateTimeoutSeconds.value
         originalLanguage = LanguageSettings.selected(context)
         val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             listOf("android.permission.BLUETOOTH_SCAN", "android.permission.BLUETOOTH_CONNECT")
@@ -82,6 +89,7 @@ class SettingsExperienceTest {
         if (::activity.isInitialized) compose.runOnUiThread {
             LanguageSettings.apply(activity, originalLanguage)
             repository.setTheme(originalTheme)
+            repository.setHeartRateTimeoutSeconds(originalTimeoutSeconds)
             repository.setBackgroundColor(originalAppearance.backgroundColor)
             repository.setBackgroundAlpha(originalAppearance.backgroundAlpha)
             repository.setFontColor(originalAppearance.fontColor)
@@ -93,6 +101,22 @@ class SettingsExperienceTest {
     private fun openSettings() {
         compose.onNodeWithContentDescription(activity.getString(R.string.settings_title)).performClick()
         compose.onNodeWithTag("settings_screen").assertIsDisplayed()
+    }
+
+    @Test
+    fun timeoutSliderPersistsWholeSecondsAndIsIndependentOfOverlayReset() {
+        openSettings()
+        val slider = compose.onNodeWithContentDescription(activity.getString(R.string.heart_rate_timeout_title))
+        slider.performScrollTo().performSemanticsAction(SemanticsActions.SetProgress) { it(30f) }
+        compose.runOnIdle { assertEquals(30, repository.heartRateTimeoutSeconds.value) }
+        slider.performSemanticsAction(SemanticsActions.SetProgress) { it(3f) }
+        compose.runOnIdle {
+            assertEquals(3, repository.heartRateTimeoutSeconds.value)
+            assertEquals(3, activity.getSharedPreferences("overlay_appearance", 0)
+                .getInt("heart_rate_timeout_seconds", -1))
+        }
+        compose.onNodeWithText(activity.getString(R.string.reset_defaults)).performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(3, repository.heartRateTimeoutSeconds.value) }
     }
 
     @Test
@@ -205,6 +229,35 @@ class SettingsExperienceTest {
             }
         } finally {
             shell("cmd uimode night $originalNightMode")
+        }
+    }
+
+    @Test
+    fun notificationCloseClearsSavedOverlayState() {
+        assumeTrue("Overlay permission is needed on the test device", Settings.canDrawOverlays(activity))
+        val wasEnabled = repository.isOverlayEnabled
+        val notifications = activity.getSystemService(NotificationManager::class.java)
+        try {
+            compose.runOnUiThread { HeartRateOverlayService.show(activity) }
+            compose.waitUntil(10_000) {
+                repository.isOverlayEnabled && notifications.activeNotifications.any { it.id == 0x4852 }
+            }
+            val close = notifications.activeNotifications.single { it.id == 0x4852 }.notification.actions.single()
+            close.actionIntent.send()
+            compose.waitUntil(10_000) {
+                !repository.isOverlayEnabled && notifications.activeNotifications.none { it.id == 0x4852 }
+            }
+            compose.runOnUiThread { HeartRateOverlayService.restoreIfEnabled(activity) }
+            compose.runOnIdle { assertFalse(repository.isOverlayEnabled) }
+        } finally {
+            compose.runOnUiThread {
+                repository.setOverlayEnabled(wasEnabled)
+                if (wasEnabled) {
+                    HeartRateOverlayService.restoreIfEnabled(activity)
+                } else {
+                    activity.stopService(android.content.Intent(activity, HeartRateOverlayService::class.java))
+                }
+            }
         }
     }
 

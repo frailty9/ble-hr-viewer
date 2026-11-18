@@ -1,6 +1,15 @@
 package com.example.blehr.data.heartrate
 
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
+import androidx.core.content.ContextCompat
 import com.example.blehr.R
 import com.example.blehr.ble.BleEvent
 import com.example.blehr.ble.BleHeartRateClient
@@ -9,6 +18,10 @@ import com.example.blehr.ble.ScannedDevice
 import com.example.blehr.ble.SensorContact
 import com.example.blehr.core.text.UiText
 import com.example.blehr.core.text.uiText
+import com.example.blehr.data.settings.SettingsRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,6 +34,12 @@ import kotlinx.coroutines.flow.update
  */
 class HeartRateRepository private constructor(context: Context) {
     companion object {
+        private val activePhases = setOf(
+            ConnectionPhase.CONNECTING,
+            ConnectionPhase.CONNECTED,
+            ConnectionPhase.RECONNECTING,
+        )
+
         @Volatile
         private var instance: HeartRateRepository? = null
 
@@ -33,16 +52,74 @@ class HeartRateRepository private constructor(context: Context) {
         }
     }
 
+    private val recentDevice = RecentHeartRateDeviceStore(context)
+    private val startupReconnect = StartupReconnect()
     private val client = BleHeartRateClient(context) { event -> onBleEvent(event) }
     private val _ui = MutableStateFlow(HeartRateState())
     val ui: StateFlow<HeartRateState> = _ui.asStateFlow()
+    private val settings = SettingsRepository.get(context)
+    private val handler = Handler(Looper.getMainLooper())
+    private var recoveryDevice: BluetoothDevice? = null
+    private val recovery = HeartRateRecovery(
+        nowMillis = SystemClock::elapsedRealtime,
+        schedule = { task, delay -> handler.postDelayed(task, delay) },
+        cancel = handler::removeCallbacks,
+        timeoutMillis = { settings.heartRateTimeoutSeconds.value * 1_000L },
+        onDataTimeout = ::handleDataTimeout,
+        reconnect = ::startRecoveryAttempt,
+        onRecoveryFailed = { showDisconnected(uiText(R.string.status_reconnect_exhausted)) },
+    )
+
+    init {
+        CoroutineScope(Dispatchers.Main.immediate).launch {
+            settings.heartRateTimeoutSeconds.collect { recovery.checkDeadline() }
+        }
+        ContextCompat.registerReceiver(
+            context,
+            object : BroadcastReceiver() {
+                override fun onReceive(context: Context, intent: Intent) {
+                    if (intent.action == BluetoothAdapter.ACTION_STATE_CHANGED && !client.canConnect() &&
+                        (_ui.value.connection in activePhases || _ui.value.scanning)
+                    ) {
+                        startupReconnect.finish()
+                        recovery.reset()
+                        client.close()
+                        _ui.update { it.copy(scanning = false) }
+                        showDisconnected(uiText(R.string.bluetooth_disabled))
+                    } else if (intent.action == Intent.ACTION_SCREEN_ON) {
+                        recovery.checkDeadline()
+                    }
+                }
+            },
+            IntentFilter().apply {
+                addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+                addAction(Intent.ACTION_SCREEN_ON)
+            },
+            ContextCompat.RECEIVER_EXPORTED,
+        )
+    }
+
+    fun reconnectAtStartup() {
+        recovery.checkDeadline()
+        startupReconnect.tryOnce {
+            val device = recentDevice.read() ?: return@tryOnce false
+            client.connectRecent(device.address, device.name, device.addressType)
+        }
+    }
 
     fun startScan() {
+        val startupActive = startupReconnect.finish()
+        if (startupActive || recovery.isRecovering || _ui.value.connection == ConnectionPhase.CONNECTING) {
+            recovery.reset()
+            recoveryDevice = null
+            client.disconnect()
+        }
         _ui.update {
             it.copy(
                 scanning = true,
                 devices = emptyList(),
-                status = uiText(R.string.status_scanning),
+                scanError = null,
+                status = if (it.connection == ConnectionPhase.CONNECTED) it.status else uiText(R.string.status_scanning),
                 connection = if (it.connection == ConnectionPhase.CONNECTED) {
                     it.connection
                 } else {
@@ -58,6 +135,9 @@ class HeartRateRepository private constructor(context: Context) {
     }
 
     fun connect(device: ScannedDevice) {
+        startupReconnect.finish()
+        recovery.reset()
+        recoveryDevice = null
         _ui.update {
             it.copy(
                 scanning = false,
@@ -68,23 +148,25 @@ class HeartRateRepository private constructor(context: Context) {
                 sample = null,
                 history = emptyList(),
                 lastRawHex = "",
+                scanError = null,
             )
         }
         client.connect(device)
     }
 
     fun disconnect() {
+        startupReconnect.finish()
+        recovery.reset()
         client.disconnect()
-        _ui.update {
-            it.copy(
-                connection = ConnectionPhase.DISCONNECTED,
-                status = uiText(R.string.status_disconnected),
-            )
-        }
+        showDisconnected(uiText(R.string.status_disconnected))
     }
 
     fun shutdown() {
+        startupReconnect.finish()
+        recovery.reset()
         client.close()
+        _ui.update { it.copy(scanning = false) }
+        showDisconnected(uiText(R.string.status_disconnected))
     }
 
     private fun onBleEvent(event: BleEvent) {
@@ -108,56 +190,60 @@ class HeartRateRepository private constructor(context: Context) {
                     } else {
                         it.connection
                     },
-                    status = if (it.connection == ConnectionPhase.CONNECTED) {
-                        uiText(R.string.status_waiting)
-                    } else {
-                        event.message
-                    },
+                    status = if (it.connection == ConnectionPhase.SCANNING) event.message else it.status,
                 )
             }
 
             is BleEvent.ScanFailed -> _ui.update {
-                it.copy(
-                    scanning = false,
-                    connection = ConnectionPhase.ERROR,
-                    status = event.message,
-                )
+                if (it.connection == ConnectionPhase.SCANNING) {
+                    it.copy(scanning = false, connection = ConnectionPhase.ERROR, status = event.message)
+                } else {
+                    it.copy(scanning = false, scanError = event.message)
+                }
             }
 
             is BleEvent.Connecting -> _ui.update {
                 it.copy(
-                    connection = ConnectionPhase.CONNECTING,
+                    connection = if (recovery.isRecovering) ConnectionPhase.RECONNECTING else ConnectionPhase.CONNECTING,
                     connectedName = event.name,
                     connectedAddress = event.address,
-                    status = uiText(R.string.status_connecting, event.name ?: uiText(R.string.unknown_device)),
+                    status = if (recovery.isRecovering) it.status else {
+                        uiText(R.string.status_connecting, event.name ?: event.address)
+                    },
                 )
             }
 
-            is BleEvent.Connected -> _ui.update {
-                it.copy(
-                    connection = ConnectionPhase.CONNECTED,
-                    connectedName = event.name,
-                    connectedAddress = event.address,
-                    status = uiText(R.string.status_subscribed),
-                    sample = null,
-                    history = emptyList(),
-                    lastRawHex = "",
-                )
+            is BleEvent.Connected -> {
+                startupReconnect.finish()
+                val name = event.name ?: _ui.value.connectedName
+                recoveryDevice = event.device
+                recentDevice.save(RecentHeartRateDevice(event.address, name, event.addressType))
+                _ui.update {
+                    it.copy(
+                        connection = if (recovery.isRecovering) ConnectionPhase.RECONNECTING else ConnectionPhase.CONNECTED,
+                        connectedName = name,
+                        connectedAddress = event.address,
+                        status = if (recovery.isRecovering) it.status else uiText(R.string.status_subscribed),
+                        sample = null,
+                        history = emptyList(),
+                    )
+                }
+                recovery.subscribed()
             }
 
-            is BleEvent.Disconnected -> _ui.update {
-                it.copy(
-                    connection = ConnectionPhase.DISCONNECTED,
-                    status = uiText(R.string.status_reconnect, event.message),
-                )
+            is BleEvent.Disconnected -> {
+                handleConnectionEnd(uiText(R.string.status_reconnect, event.message), ConnectionPhase.DISCONNECTED)
             }
 
             is BleEvent.Notification -> {
+                if (!recovery.isMonitoring) return
+                recovery.receivedReading()
                 val sample = event.sample
                 _ui.update { state ->
                     val history = (state.history + sample.bpm).takeLast(90)
                     state.copy(
                         sample = sample,
+                        connection = ConnectionPhase.CONNECTED,
                         history = history,
                         lastRawHex = sample.rawHex,
                         status = statusFor(sample),
@@ -171,17 +257,58 @@ class HeartRateRepository private constructor(context: Context) {
                     parseErrorCount = state.parseErrorCount + 1,
                     errors = (listOf(entry) + state.errors).take(5),
                     lastRawHex = event.rawHex,
-                    status = uiText(R.string.status_bad_packet),
                 )
             }
 
-            is BleEvent.Error -> _ui.update {
-                it.copy(
-                    scanning = false,
-                    connection = ConnectionPhase.ERROR,
-                    status = event.message,
-                )
+            is BleEvent.Error -> {
+                handleConnectionEnd(event.message, ConnectionPhase.ERROR)
             }
+        }
+    }
+
+    private fun handleDataTimeout(): Boolean {
+        client.disconnect()
+        if (_ui.value.scanning || !client.canConnect() || recoveryDevice == null) {
+            showDisconnected(uiText(R.string.status_data_timeout))
+            return false
+        }
+        _ui.update { it.withoutLiveReadings() }
+        return true
+    }
+
+    private fun startRecoveryAttempt(attempt: Int): Boolean {
+        val device = recoveryDevice ?: return false
+        _ui.update {
+            it.copy(
+                connection = ConnectionPhase.RECONNECTING,
+                status = uiText(R.string.status_reconnecting, attempt, MAX_RECONNECT_ATTEMPTS),
+            )
+        }
+        return client.reconnect(device, _ui.value.connectedName)
+    }
+
+    private fun handleConnectionEnd(message: UiText, phase: ConnectionPhase) {
+        if (recovery.isRecovering && !client.canConnect()) {
+            recovery.reset()
+            showDisconnected(message)
+        } else if (!recovery.connectionEnded()) {
+            if (startupReconnect.finish()) {
+                showDisconnected(uiText(R.string.status_startup_reconnect_failed), ConnectionPhase.IDLE)
+            } else {
+                showDisconnected(message, phase)
+            }
+        }
+    }
+
+    private fun showDisconnected(message: UiText, phase: ConnectionPhase = ConnectionPhase.DISCONNECTED) {
+        recoveryDevice = null
+        _ui.update {
+            it.withoutLiveReadings().copy(
+                connection = phase,
+                connectedName = null,
+                connectedAddress = null,
+                status = message,
+            )
         }
     }
 

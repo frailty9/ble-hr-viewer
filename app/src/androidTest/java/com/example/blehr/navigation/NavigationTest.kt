@@ -1,28 +1,31 @@
 package com.example.blehr.navigation
 
-import com.example.blehr.MainActivity
-import androidx.activity.compose.setContent
+import android.bluetooth.BluetoothManager
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.os.Build
+import android.view.RoundedCorner
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
-import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
-import androidx.test.runner.lifecycle.Stage
-import org.junit.Before
-import org.junit.After
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
@@ -33,16 +36,27 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
+import androidx.test.runner.lifecycle.Stage
+import com.example.blehr.MainActivity
 import com.example.blehr.R
+import com.example.blehr.ble.ScannedDevice
 import com.example.blehr.data.heartrate.HeartRateState
 import com.example.blehr.data.settings.AppLanguage
+import com.example.blehr.data.settings.AppTheme
 import com.example.blehr.data.settings.OverlayAppearance
 import com.example.blehr.feature.home.HomeScreen
+import com.example.blehr.feature.home.components.DeviceCard
 import com.example.blehr.feature.settings.SettingsScreen
+import com.example.blehr.ui.theme.AppCornerRadii
 import com.example.blehr.ui.theme.BleHrTheme
+import com.example.blehr.ui.theme.LocalAppShapes
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -90,14 +104,17 @@ class NavigationTest {
     }
 
     private lateinit var controller: NavHostController
+    private var observedRadii: AppCornerRadii? = null
     private val settingsLabel get() = activity.getString(R.string.settings_title)
     private val backLabel get() = activity.getString(R.string.back)
 
     @Composable
     private fun TestPages(useTestController: Boolean = false) {
-        BleHrTheme {
+        BleHrTheme(theme = AppTheme.LIGHT) {
+            val radii = LocalAppShapes.current.radii
+            SideEffect { observedRadii = radii }
             // Constrain height to exercise real screen scrolling on phones of any size.
-            Box(Modifier.fillMaxWidth().height(600.dp)) {
+            Box(Modifier.fillMaxWidth().height(600.dp).background(MaterialTheme.colorScheme.background)) {
                 if (useTestController) {
                     val context = LocalContext.current
                     val testController = remember {
@@ -180,6 +197,76 @@ class NavigationTest {
         compose.runOnUiThread { activity.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithTag("home_screen").assertIsDisplayed()
         assertEquals(before, scrollPosition("home_scroll"), 1f)
+    }
+
+    @Test
+    fun scrollingViewportReachesBottomWithoutAnInsetRoundedFrame() {
+        compose.runOnUiThread { activity.setContent { TestPages() } }
+        compose.onNodeWithTag("home_scroll").performSemanticsAction(SemanticsActions.ScrollBy) {
+            it(0f, 200f)
+        }
+        val screen = compose.onNodeWithTag("home_screen")
+        val screenBounds = screen.fetchSemanticsNode().boundsInRoot
+        val viewport = compose.onNodeWithTag("home_scroll").fetchSemanticsNode().boundsInRoot
+        val pixels = screen.captureToImage().toPixelMap()
+        val left = (viewport.left - screenBounds.left).toInt()
+        val right = (viewport.right - screenBounds.left).toInt() - 1
+        val top = (viewport.top - screenBounds.top).toInt()
+        val middle = (left + right) / 2
+        assertEquals(screenBounds.bottom, viewport.bottom, 1f)
+        // The middle of the first card is now at the viewport top, not its own rounded edge.
+        assertEquals(0xFFFFFFFF.toInt(), pixels[middle, top + 2].toArgb())
+        assertEquals(0xFFFFFFFF.toInt(), pixels[left + 2, top + 2].toArgb())
+        assertEquals(0xFFFFFFFF.toInt(), pixels[right - 2, top + 2].toArgb())
+    }
+
+    @Test
+    fun rootThemeUsesWindowCornerDataAndRefreshesAfterRotation() {
+        compose.runOnUiThread { activity.setContent { TestPages() } }
+        fun assertWindowRadius() {
+            var expected = 20f
+            compose.runOnIdle {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !activity.isInMultiWindowMode) {
+                    val insets = activity.window.decorView.rootWindowInsets
+                    val radiusPx = listOf(
+                        RoundedCorner.POSITION_TOP_LEFT, RoundedCorner.POSITION_TOP_RIGHT,
+                        RoundedCorner.POSITION_BOTTOM_RIGHT, RoundedCorner.POSITION_BOTTOM_LEFT,
+                    ).mapNotNull { insets?.getRoundedCorner(it)?.radius }.filter { it > 0 }.maxOrNull()
+                    if (radiusPx != null) expected = (radiusPx / activity.resources.displayMetrics.density - 14f)
+                        .coerceIn(12f, 28f)
+                }
+            }
+            compose.waitUntil(10_000) { observedRadii?.card?.value == expected }
+        }
+        assertWindowRadius()
+        compose.runOnUiThread { activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE }
+        compose.waitUntil(10_000) {
+            activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        }
+        compose.onNodeWithTag("home_left_scroll").assertIsDisplayed()
+        compose.onNodeWithTag("home_right_scroll").assertIsDisplayed()
+        assertWindowRadius()
+    }
+
+    @Test
+    fun sampleDeviceRowRemainsClickableWithoutStartingBle() {
+        val device = activity.getSystemService(BluetoothManager::class.java).adapter
+            .getRemoteDevice("00:11:22:33:44:55")
+        val sample = ScannedDevice(device, "Preview HR", "00:11:22:33:44:55", -55, true)
+        var clicked = false
+        compose.runOnUiThread {
+            activity.setContent {
+                BleHrTheme(theme = AppTheme.LIGHT) {
+                    DeviceCard(
+                        state = HeartRateState(devices = listOf(sample)),
+                        onStartScan = {}, onStopScan = {}, onConnect = { clicked = it == sample },
+                        onDisconnect = {}, openBluetoothSettings = {},
+                    )
+                }
+            }
+        }
+        compose.onNodeWithText("Preview HR").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertTrue(clicked) }
     }
 
     @Test

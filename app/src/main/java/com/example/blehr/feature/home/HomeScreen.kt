@@ -6,10 +6,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -29,6 +32,7 @@ import com.example.blehr.feature.home.components.HelpCard
 import com.example.blehr.feature.home.components.OverlayCard
 import com.example.blehr.feature.home.components.PacketCard
 import com.example.blehr.feature.home.components.TrendCard
+import com.example.blehr.ui.theme.PageMargin
 
 @Composable
 fun HomeScreen(
@@ -46,12 +50,15 @@ fun HomeScreen(
     val portraitScroll = rememberScrollState()
     val landscapeLeftScroll = rememberScrollState()
     val landscapeRightScroll = rememberScrollState()
+    // This space belongs to the content, so it enters the viewport only at the end of scrolling.
+    val bottomContentSpace = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
+        .asPaddingValues().calculateBottomPadding() + PageMargin
     Column(
         modifier = Modifier
             .testTag("home_screen")
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(14.dp),
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
+            .padding(horizontal = PageMargin),
     ) {
         AppHeader(state, onOpenSettings)
         Spacer(Modifier.height(10.dp))
@@ -66,6 +73,7 @@ fun HomeScreen(
                         modifier = Modifier
                             .weight(1.15f)
                             .fillMaxHeight()
+                            .testTag("home_left_scroll")
                             .verticalScroll(landscapeLeftScroll),
                     ) {
                         BpmCard(state)
@@ -73,11 +81,13 @@ fun HomeScreen(
                         TrendCard(state)
                         Spacer(Modifier.height(10.dp))
                         PacketCard(state)
+                        Spacer(Modifier.height(bottomContentSpace))
                     }
                     Column(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
+                            .testTag("home_right_scroll")
                             .verticalScroll(landscapeRightScroll),
                     ) {
                         DeviceCard(state, onStartScan, onStopScan, onConnect, onDisconnect, onOpenBluetoothSettings)
@@ -87,6 +97,7 @@ fun HomeScreen(
                         ErrorCard(state)
                         Spacer(Modifier.height(10.dp))
                         HelpCard()
+                        Spacer(Modifier.height(bottomContentSpace))
                     }
                 }
             } else {
@@ -109,6 +120,7 @@ fun HomeScreen(
                     PacketCard(state)
                     Spacer(Modifier.height(10.dp))
                     HelpCard()
+                    Spacer(Modifier.height(bottomContentSpace))
                 }
             }
         }
