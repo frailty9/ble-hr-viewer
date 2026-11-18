@@ -20,16 +20,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.example.blehr.ble.ScannedDevice
 import com.example.blehr.data.heartrate.HeartRateState
 import com.example.blehr.feature.home.components.AppHeader
 import com.example.blehr.feature.home.components.BpmCard
 import com.example.blehr.feature.home.components.DeviceCard
-import com.example.blehr.feature.home.components.ErrorCard
-import com.example.blehr.feature.home.components.HelpCard
-import com.example.blehr.feature.home.components.PacketCard
 import com.example.blehr.feature.home.components.TrendCard
 import com.example.blehr.ui.theme.PageMargin
 
@@ -62,7 +61,11 @@ fun HomeScreen(
         AppHeader(state, onOpenSettings)
         Spacer(Modifier.height(10.dp))
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+            val viewportHeight = constraints.maxHeight
             val landscape = maxWidth > maxHeight
+            val nearbyDevices: @Composable () -> Unit = {
+                DeviceCard(state, onStartScan, onStopScan, onConnect, onDisconnect, onOpenBluetoothSettings)
+            }
             if (landscape) {
                 Row(
                     modifier = Modifier.fillMaxSize(),
@@ -78,46 +81,64 @@ fun HomeScreen(
                         BpmCard(state, overlayVisible, onToggleOverlay)
                         Spacer(Modifier.height(10.dp))
                         TrendCard(state)
-                        Spacer(Modifier.height(10.dp))
-                        PacketCard(state)
                         Spacer(Modifier.height(bottomContentSpace))
                     }
-                    Column(
+                    DeviceFillColumn(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
                             .testTag("home_right_scroll")
                             .verticalScroll(landscapeRightScroll),
-                    ) {
-                        DeviceCard(state, onStartScan, onStopScan, onConnect, onDisconnect, onOpenBluetoothSettings)
-                        Spacer(Modifier.height(10.dp))
-                        ErrorCard(state)
-                        Spacer(Modifier.height(10.dp))
-                        HelpCard()
-                        Spacer(Modifier.height(bottomContentSpace))
-                    }
+                        viewportHeight = viewportHeight,
+                        bottomSpace = { Spacer(Modifier.height(bottomContentSpace)) },
+                        devices = nearbyDevices,
+                    )
                 }
             } else {
-                Column(
+                DeviceFillColumn(
                     modifier = Modifier
                         .fillMaxSize()
                         .testTag("home_scroll")
                         .verticalScroll(portraitScroll),
-                ) {
-                    BpmCard(state, overlayVisible, onToggleOverlay)
-                    Spacer(Modifier.height(10.dp))
-                    TrendCard(state)
-                    Spacer(Modifier.height(10.dp))
-                    DeviceCard(state, onStartScan, onStopScan, onConnect, onDisconnect, onOpenBluetoothSettings)
-                    Spacer(Modifier.height(10.dp))
-                    ErrorCard(state)
-                    Spacer(Modifier.height(10.dp))
-                    PacketCard(state)
-                    Spacer(Modifier.height(10.dp))
-                    HelpCard()
-                    Spacer(Modifier.height(bottomContentSpace))
-                }
+                    viewportHeight = viewportHeight,
+                    top = {
+                        BpmCard(state, overlayVisible, onToggleOverlay)
+                        Spacer(Modifier.height(10.dp))
+                        TrendCard(state)
+                        Spacer(Modifier.height(10.dp))
+                    },
+                    bottomSpace = { Spacer(Modifier.height(bottomContentSpace)) },
+                    devices = nearbyDevices,
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun DeviceFillColumn(
+    modifier: Modifier,
+    viewportHeight: Int,
+    top: @Composable () -> Unit = {},
+    bottomSpace: @Composable () -> Unit,
+    devices: @Composable () -> Unit,
+) {
+    Layout(modifier = modifier, content = {
+        Column(content = { top() })
+        devices()
+        bottomSpace()
+    }) { (topContent, deviceCard, bottom), constraints ->
+        // Measure the other cards first; the device card can grow beyond the viewport for long lists.
+        val childConstraints = constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity)
+        val topPlaceable = topContent.measure(childConstraints)
+        val bottomPlaceable = bottom.measure(childConstraints)
+        val remaining = (viewportHeight - topPlaceable.height - bottomPlaceable.height).coerceAtLeast(0)
+        val devicesPlaceable = deviceCard.measure(childConstraints.copy(minHeight = remaining))
+        val bottomY = topPlaceable.height + devicesPlaceable.height
+        layout(constraints.maxWidth, bottomY + bottomPlaceable.height) {
+            topPlaceable.placeRelative(0, 0)
+            devicesPlaceable.placeRelative(0, topPlaceable.height)
+            bottomPlaceable.placeRelative(0, bottomY)
         }
     }
 }

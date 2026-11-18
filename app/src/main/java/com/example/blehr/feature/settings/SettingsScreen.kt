@@ -23,19 +23,24 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.blehr.R
+import com.example.blehr.data.heartrate.HeartRateState
 import com.example.blehr.data.settings.AppLanguage
 import com.example.blehr.data.settings.AppTheme
 import com.example.blehr.data.settings.DEFAULT_HEART_RATE_TIMEOUT_SECONDS
 import com.example.blehr.data.settings.OverlayAppearance
 import com.example.blehr.feature.settings.components.BluetoothConnectionSettings
+import com.example.blehr.feature.settings.components.ErrorCard
+import com.example.blehr.feature.settings.components.HelpCard
 import com.example.blehr.feature.settings.components.LanguageSelector
 import com.example.blehr.feature.settings.components.OverlayAppearanceCard
+import com.example.blehr.feature.settings.components.PacketCard
 import com.example.blehr.feature.settings.components.ThemeSelector
 import com.example.blehr.ui.theme.PageMargin
 
 @Composable
 fun SettingsScreen(
     language: AppLanguage,
+    heartRateState: HeartRateState,
     onLanguageSelected: (AppLanguage) -> Unit,
     onBack: () -> Unit,
     appearance: OverlayAppearance,
@@ -79,6 +84,9 @@ fun SettingsScreen(
                 onFontColorChanged, onFontAlphaChanged, onResetAppearance,
             )
             BluetoothConnectionSettings(heartRateTimeoutSeconds, onHeartRateTimeoutChanged)
+            PacketCard(heartRateState)
+            ErrorCard(heartRateState)
+            HelpCard()
         }
     }
 }

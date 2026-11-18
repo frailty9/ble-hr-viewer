@@ -27,6 +27,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
@@ -109,10 +110,20 @@ class NavigationTest {
     private val backLabel get() = activity.getString(R.string.back)
 
     @Composable
-    private fun TestPages(useTestController: Boolean = false) {
+    private fun TestPages(useTestController: Boolean = false, showManyDevices: Boolean = false) {
         BleHrTheme(theme = AppTheme.LIGHT) {
             val radii = LocalAppShapes.current.radii
             SideEffect { observedRadii = radii }
+            val state = remember(showManyDevices) {
+                val devices = if (showManyDevices) {
+                    val adapter = activity.getSystemService(BluetoothManager::class.java).adapter
+                    (10..25).map { index ->
+                        val address = "00:11:22:33:44:$index"
+                        ScannedDevice(adapter.getRemoteDevice(address), "Preview HR $index", address, -55, true)
+                    }
+                } else emptyList()
+                HeartRateState(devices = devices)
+            }
             // Constrain height to exercise real screen scrolling on phones of any size.
             Box(Modifier.fillMaxWidth().height(600.dp).background(MaterialTheme.colorScheme.background)) {
                 if (useTestController) {
@@ -124,13 +135,13 @@ class NavigationTest {
                     }
                     controller = testController
                     BleHrNavHost(
-                        homeContent = { HomeContent(it) },
+                        homeContent = { HomeContent(state, it) },
                         settingsContent = { SettingsContent(it) },
                         navController = testController,
                     )
                 } else {
                     BleHrNavHost(
-                        homeContent = { HomeContent(it) },
+                        homeContent = { HomeContent(state, it) },
                         settingsContent = { SettingsContent(it) },
                     )
                 }
@@ -139,9 +150,9 @@ class NavigationTest {
     }
 
     @Composable
-    private fun HomeContent(openSettings: () -> Unit) {
+    private fun HomeContent(state: HeartRateState, openSettings: () -> Unit) {
         HomeScreen(
-            state = HeartRateState(),
+            state = state,
             overlayVisible = false,
             onOpenSettings = openSettings,
             onStartScan = {}, onStopScan = {}, onConnect = {}, onDisconnect = {},
@@ -153,6 +164,7 @@ class NavigationTest {
     private fun SettingsContent(back: () -> Unit) {
         SettingsScreen(
             language = AppLanguage.SYSTEM,
+            heartRateState = HeartRateState(),
             onLanguageSelected = {},
             onBack = back,
             appearance = OverlayAppearance.Default,
@@ -183,7 +195,7 @@ class NavigationTest {
 
     @Test
     fun toolbarAndSystemBackReturnToHomeAndKeepItsScrollPosition() {
-        compose.runOnUiThread { activity.setContent { TestPages() } }
+        compose.runOnUiThread { activity.setContent { TestPages(showManyDevices = true) } }
         compose.onNodeWithTag("home_scroll").performTouchInput { swipeUp() }
         val before = scrollPosition("home_scroll")
         assertTrue(before > 0)
@@ -197,11 +209,12 @@ class NavigationTest {
         compose.runOnUiThread { activity.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithTag("home_screen").assertIsDisplayed()
         assertEquals(before, scrollPosition("home_scroll"), 1f)
+        compose.onNodeWithText("Preview HR 25").performScrollTo().assertIsDisplayed()
     }
 
     @Test
     fun scrollingViewportReachesBottomWithoutAnInsetRoundedFrame() {
-        compose.runOnUiThread { activity.setContent { TestPages() } }
+        compose.runOnUiThread { activity.setContent { TestPages(showManyDevices = true) } }
         compose.onNodeWithTag("home_scroll").performSemanticsAction(SemanticsActions.ScrollBy) {
             it(0f, 200f)
         }
@@ -218,6 +231,35 @@ class NavigationTest {
         assertEquals(0xFFFFFFFF.toInt(), pixels[middle, top + 2].toArgb())
         assertEquals(0xFFFFFFFF.toInt(), pixels[left + 2, top + 2].toArgb())
         assertEquals(0xFFFFFFFF.toInt(), pixels[right - 2, top + 2].toArgb())
+    }
+
+    @Test
+    fun emptyDeviceCardFillsAvailableHeightAndDiagnosticsAreInSettings() {
+        compose.runOnUiThread {
+            activity.setContent {
+                BleHrTheme {
+                    BleHrNavHost(
+                        homeContent = { HomeContent(HeartRateState(), it) },
+                        settingsContent = { SettingsContent(it) },
+                    )
+                }
+            }
+        }
+        val viewport = compose.onNodeWithTag("home_scroll").fetchSemanticsNode()
+        val deviceCard = compose.onNodeWithTag("nearby_devices_card").fetchSemanticsNode()
+        val bottomGap = viewport.boundsInRoot.bottom - deviceCard.boundsInRoot.bottom
+        val density = activity.resources.displayMetrics.density
+        assertTrue(
+            "Expected only a bottom margin and navigation inset, got $bottomGap px",
+            bottomGap in 12 * density..64 * density,
+        )
+        assertEquals(0f, viewport.config[SemanticsProperties.VerticalScrollAxisRange].maxValue(), 1f)
+
+        val movedCards = listOf(R.string.packet_title, R.string.error_packets, R.string.help_title)
+            .map { compose.onNodeWithText(activity.getString(it)) }
+        movedCards.forEach { it.assertDoesNotExist() }
+        compose.onNodeWithContentDescription(settingsLabel).performClick()
+        movedCards.forEach { it.performScrollTo().assertIsDisplayed() }
     }
 
     @Test
@@ -270,7 +312,7 @@ class NavigationTest {
     }
 
     @Test
-    fun destinationAndBothScrollPositionsSurviveSavedStateRestoration() {
+    fun destinationAndSettingsScrollPositionSurviveSavedStateRestoration() {
         // Exercise actual app navigation across an Activity recreation (as with app language changes).
         compose.onNodeWithTag("home_screen").assertIsDisplayed()
         compose.onNodeWithTag("home_scroll").performTouchInput { swipeUp() }
@@ -286,7 +328,6 @@ class NavigationTest {
             it(0f, 200f)
         }
         val settingsBefore = scrollPosition("settings_scroll")
-        assertTrue(homeBefore > 0)
         assertTrue(settingsBefore > 0)
         val originalActivity = activity
         compose.runOnUiThread { originalActivity.recreate() }
