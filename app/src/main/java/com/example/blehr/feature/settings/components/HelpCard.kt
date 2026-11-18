@@ -1,4 +1,4 @@
-package com.example.blehr.feature.home.components
+package com.example.blehr.feature.settings.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer

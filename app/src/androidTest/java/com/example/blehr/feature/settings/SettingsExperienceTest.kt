@@ -104,7 +104,7 @@ class SettingsExperienceTest {
     }
 
     @Test
-    fun timeoutSliderPersistsWholeSecondsAndIsIndependentOfOverlayReset() {
+    fun timeoutSliderPersistsWholeSecondsAndResetsIndependentlyOfOverlayAppearance() {
         openSettings()
         val slider = compose.onNodeWithContentDescription(activity.getString(R.string.heart_rate_timeout_title))
         slider.performScrollTo().performSemanticsAction(SemanticsActions.SetProgress) { it(30f) }
@@ -115,8 +115,17 @@ class SettingsExperienceTest {
             assertEquals(3, activity.getSharedPreferences("overlay_appearance", 0)
                 .getInt("heart_rate_timeout_seconds", -1))
         }
-        compose.onNodeWithText(activity.getString(R.string.reset_defaults)).performScrollTo().performClick()
+        compose.onNodeWithTag("overlay_appearance_reset").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(3, repository.heartRateTimeoutSeconds.value) }
+        compose.onNodeWithTag("background_opacity_slider").performScrollTo()
+            .performSemanticsAction(SemanticsActions.SetProgress) { it(0.79f) }
+        compose.onNodeWithTag("heart_rate_timeout_reset").performScrollTo().performClick()
+        compose.runOnIdle {
+            assertEquals(5, repository.heartRateTimeoutSeconds.value)
+            assertEquals(5, activity.getSharedPreferences("overlay_appearance", 0)
+                .getInt("heart_rate_timeout_seconds", -1))
+            assertEquals(0.79f, repository.appearance.value.backgroundAlpha)
+        }
     }
 
     @Test
@@ -154,7 +163,7 @@ class SettingsExperienceTest {
         }
         compose.onNodeWithTag("background_opacity_slider").performSemanticsAction(SemanticsActions.SetProgress) { it(0.79f) }
         compose.onNodeWithTag("font_opacity_slider").performSemanticsAction(SemanticsActions.SetProgress) { it(0.22f) }
-        compose.onNodeWithText(activity.getString(R.string.reset_defaults)).performScrollTo().performClick()
+        compose.onNodeWithTag("overlay_appearance_reset").performScrollTo().performClick()
         compose.runOnIdle {
             val defaults = repository.appearance.value
             assertEquals(0xFF141A22.toInt(), defaults.backgroundColor)
@@ -195,7 +204,7 @@ class SettingsExperienceTest {
             assertEquals(AppTheme.DARK, repository.theme.value)
             assertEquals(false, WindowCompat.getInsetsController(activity.window, activity.window.decorView).isAppearanceLightStatusBars)
         }
-        compose.onNodeWithText(activity.getString(R.string.reset_defaults)).performScrollTo().performClick()
+        compose.onNodeWithTag("overlay_appearance_reset").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(AppTheme.DARK, repository.theme.value) }
     }
 
@@ -233,20 +242,32 @@ class SettingsExperienceTest {
     }
 
     @Test
-    fun notificationCloseClearsSavedOverlayState() {
+    fun overlayButtonAndNotificationCloseStayInSyncWithTheSavedState() {
         assumeTrue("Overlay permission is needed on the test device", Settings.canDrawOverlays(activity))
         val wasEnabled = repository.isOverlayEnabled
         val notifications = activity.getSystemService(NotificationManager::class.java)
+        val strings = LanguageSettings.localizedContext(activity)
+        val show = compose.onNodeWithContentDescription(strings.getString(R.string.overlay_show))
+        val hide = compose.onNodeWithContentDescription(strings.getString(R.string.overlay_close))
         try {
-            compose.runOnUiThread { HeartRateOverlayService.show(activity) }
+            compose.runOnUiThread { HeartRateOverlayService.hide(activity) }
+            compose.waitUntil(10_000) { !repository.isOverlayEnabled && !HeartRateOverlayService.isVisible.value }
+            show.assertIsDisplayed().performClick()
+            compose.waitUntil(10_000) { repository.isOverlayEnabled && HeartRateOverlayService.isVisible.value }
+            hide.assertIsDisplayed().performClick()
+            compose.waitUntil(10_000) { !repository.isOverlayEnabled && !HeartRateOverlayService.isVisible.value }
+            show.assertIsDisplayed().performClick()
             compose.waitUntil(10_000) {
-                repository.isOverlayEnabled && notifications.activeNotifications.any { it.id == 0x4852 }
+                repository.isOverlayEnabled && HeartRateOverlayService.isVisible.value &&
+                    notifications.activeNotifications.any { it.id == 0x4852 }
             }
             val close = notifications.activeNotifications.single { it.id == 0x4852 }.notification.actions.single()
             close.actionIntent.send()
             compose.waitUntil(10_000) {
-                !repository.isOverlayEnabled && notifications.activeNotifications.none { it.id == 0x4852 }
+                !repository.isOverlayEnabled && !HeartRateOverlayService.isVisible.value &&
+                    notifications.activeNotifications.none { it.id == 0x4852 }
             }
+            show.assertIsDisplayed()
             compose.runOnUiThread { HeartRateOverlayService.restoreIfEnabled(activity) }
             compose.runOnIdle { assertFalse(repository.isOverlayEnabled) }
         } finally {

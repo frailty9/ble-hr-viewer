@@ -74,7 +74,11 @@ internal fun OverlayAppearanceCard(
                     color = Ink,
                 )
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = onReset, shape = LocalAppShapes.current.button) {
+                TextButton(
+                    onClick = onReset,
+                    modifier = Modifier.testTag("overlay_appearance_reset"),
+                    shape = LocalAppShapes.current.button,
+                ) {
                     Text(stringResource(R.string.reset_defaults))
                 }
             }
