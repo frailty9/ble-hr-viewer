@@ -72,7 +72,7 @@
 | Navigation Compose | 2.8.9 |
 | Lifecycle | 2.8.3 |
 | Android SDK | compileSdk / targetSdk 35，minSdk 26 |
-| 应用版本 | 0.4.4-SNAPSHOT（versionCode 19） |
+| 应用版本 | 0.4.4（versionCode 20） |
 
 使用 Android Studio 打开项目并配置 Android SDK，或在本机的 `local.properties` 中设置 `sdk.dir`。该文件不提交到 Git。
 
@@ -80,14 +80,14 @@ Windows：
 
 ```powershell
 .\gradlew.bat :app:assembleDebug
-adb install -r dist\ble-hr-viewer-0.4.4-SNAPSHOT-debug.apk
+adb install -r dist\ble-hr-viewer-0.4.4-debug.apk
 ```
 
 Linux / macOS：
 
 ```sh
 ./gradlew :app:assembleDebug
-adb install -r dist/ble-hr-viewer-0.4.4-SNAPSHOT-debug.apk
+adb install -r dist/ble-hr-viewer-0.4.4-debug.apk
 ```
 
 构建完成后会自动将带产品名和版本号的 APK 导出到 `dist/`，版本号取自构建配置。
@@ -145,7 +145,7 @@ Windows 使用以下命令；Linux / macOS 将 `.\gradlew.bat` 替换为 `./grad
 ```
 
 - 发布前核对 `app/build.gradle.kts` 中的 `versionCode`、`versionName` 和本文件的版本信息。
-- Debug APK 用于本地测试，导出为 `ble-hr-viewer-0.4.4-SNAPSHOT-debug.apk`。
+- Debug APK 用于本地测试，导出为 `ble-hr-viewer-0.4.4-debug.apk`。
 - 安装包及其 SHA-256 校验值作为发布附件提供，构建产物不提交到 Git。
 - 在真机上检查设备扫描、心率订阅、断开连接，以及悬浮窗的授权、后台显示、拖动和长按关闭。
 
@@ -153,10 +153,10 @@ Windows 使用以下命令；Linux / macOS 将 `.\gradlew.bat` 替换为 `./grad
 
 将根目录的 [`keystore.properties.example`](keystore.properties.example) 复制为 `keystore.properties`，以 UTF-8 保存。填入 `storeFile`（密钥库路径）、`storePassword`（密钥库密码）、`keyAlias`（密钥别名）和 `keyPassword`（密钥密码，省略时使用 `storePassword`）。相对路径以项目根目录为准。Windows 路径可写成 `D:/Keys/ble-hr-viewer-release.jks`，文件内容中的字面反斜杠要写成 `\\`。
 
-配置完成后执行 `.\gradlew.bat :app:assembleRelease`，签名 APK 会导出为 `dist/ble-hr-viewer-0.4.4-SNAPSHOT.apk`。如果没有 `keystore.properties`，该命令仍可构建，导出的文件带有 `-unsigned.apk` 后缀。使用 Android SDK Build Tools 中的 `apksigner` 验证签名并查看证书指纹：
+配置完成后执行 `.\gradlew.bat :app:assembleRelease`，签名 APK 会导出为 `dist/ble-hr-viewer-0.4.4.apk`。如果没有 `keystore.properties`，该命令仍可构建，导出的文件带有 `-unsigned.apk` 后缀。使用 Android SDK Build Tools 中的 `apksigner` 验证签名并查看证书指纹：
 
 ```powershell
-apksigner verify --print-certs dist/ble-hr-viewer-0.4.4-SNAPSHOT.apk
+apksigner verify --print-certs dist/ble-hr-viewer-0.4.4.apk
 ```
 
 `keystore.properties` 和密钥库只保存在本机。Git 已忽略该配置文件以及 `.jks`、`.keystore` 等常用密钥库格式。

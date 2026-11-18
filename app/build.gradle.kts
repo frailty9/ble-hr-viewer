@@ -22,8 +22,8 @@ android {
         applicationId = "com.example.blehr"
         minSdk = 26
         targetSdk = 35
-        versionCode = 19
-        versionName = "0.4.4-SNAPSHOT"
+        versionCode = 20
+        versionName = "0.4.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
