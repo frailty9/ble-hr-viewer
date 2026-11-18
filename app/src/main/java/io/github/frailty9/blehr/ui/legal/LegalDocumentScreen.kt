@@ -1,6 +1,5 @@
 package io.github.frailty9.blehr.ui.legal
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,7 +33,6 @@ import io.github.frailty9.blehr.ui.theme.PageMargin
 
 @Composable
 fun LegalDocumentScreen(document: LegalDocument, onBack: () -> Unit) {
-    BackHandler(onBack = onBack)
     val context = LocalContext.current
     val text = remember(context, document) { LegalDocuments.read(context, document) }
     Box(

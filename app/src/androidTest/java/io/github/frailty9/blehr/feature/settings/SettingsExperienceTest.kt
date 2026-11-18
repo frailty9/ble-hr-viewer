@@ -73,10 +73,10 @@ class SettingsExperienceTest {
             listOf("android.permission.BLUETOOTH_SCAN", "android.permission.BLUETOOTH_CONNECT")
         } else listOf("android.permission.ACCESS_FINE_LOCATION")
         for (permission in permissions) {
-            instrumentation.uiAutomation.executeShellCommand("pm grant io.github.frailty9.blehr $permission")
+            instrumentation.uiAutomation.executeShellCommand("pm grant ${instrumentation.targetContext.packageName} $permission")
                 .use { java.io.FileInputStream(it.fileDescriptor).use { input -> input.readBytes() } }
         }
-        instrumentation.uiAutomation.executeShellCommand("am start -W -n io.github.frailty9.blehr/.MainActivity")
+        instrumentation.uiAutomation.executeShellCommand("am start -W -n ${instrumentation.targetContext.packageName}/${MainActivity::class.java.name}")
             .use { java.io.FileInputStream(it.fileDescriptor).use { input -> input.readBytes() } }
         compose.waitUntil(10_000) {
             instrumentation.runOnMainSync {

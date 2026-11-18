@@ -1,12 +1,12 @@
 # BLE HR Viewer 用户协议 / User Agreement
 
-生效日期 / Effective date: 2026-11-18 · 联系邮箱 / Contact: `ydl9263@qq.com`
-
 应用内同一文本位于「设置 → 关于与合规 → 用户协议」，按应用语言显示中文或英文。
 
 ---
 
 ## 中文
+
+生效日期：2026 年 11 月 18 日
 
 ### 一、协议的接受
 
@@ -43,6 +43,8 @@ AndroidX、Jetpack Compose、Kotlin、Gradle Wrapper 等组件分别适用 Apach
 ---
 
 ## English
+
+Effective date: November 18, 2026
 
 ### 1. Acceptance
 

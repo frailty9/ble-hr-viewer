@@ -1,6 +1,6 @@
 # BLE HR Viewer 隐私政策 / Privacy Policy
 
-生效日期 / Effective date: 2026-11-18 · 版本 / Version: 1.0
+<!-- consent-version: 1 -->
 
 应用包名 / Package: `io.github.frailty9.blehr` · 联系邮箱 / Contact: `ydl9263@qq.com`
 
@@ -9,6 +9,8 @@
 ---
 
 ## 中文
+
+生效日期：2026 年 11 月 18 日 · 版本：1.0
 
 ### 一、适用范围与处理者
 
@@ -26,7 +28,7 @@
 
 ### 三、处理目的与合法性基础
 
-我们基于你的同意处理上述信息，仅用于实现蓝牙心率设备连接、实时显示心率、悬浮窗展示、设备重连和保存界面偏好。心率数据属于敏感个人信息，仅在本机内存中处理，不会上传。
+我们基于你的同意处理上述信息，仅用于实现蓝牙心率设备连接、实时显示心率、悬浮窗展示、设备重连和保存界面偏好。心率数据属于敏感个人信息，仅在本机内存中处理，不会上传。对于心率这一敏感个人信息，我们在首次启动时通过单独的勾选项征得你的同意。
 
 ### 四、权限及用途
 
@@ -71,6 +73,8 @@
 
 ## English
 
+Effective date: November 18, 2026 · Version: 1.0
+
 ### 1. Scope and controller
 
 This policy applies to the Android app BLE HR Viewer (package `io.github.frailty9.blehr`, the "App"). The controller is the individual developer "花殇". Contact: `ydl9263@qq.com`.
@@ -87,7 +91,7 @@ The App does not require an account and does not collect your name, phone number
 
 ### 3. Purpose and legal basis
 
-We process the information above based on your consent, only to connect to Bluetooth heart rate devices, show live heart rate, display the floating overlay, reconnect to devices, and save interface preferences. Heart rate is sensitive personal information and is processed in memory on this device only. It is not uploaded.
+We process the information above based on your consent, only to connect to Bluetooth heart rate devices, show live heart rate, display the floating overlay, reconnect to devices, and save interface preferences. Heart rate is sensitive personal information and is processed in memory on this device only. It is not uploaded. We obtain your separate consent for heart rate through a dedicated checkbox on first launch.
 
 ### 4. Permissions and purposes
 

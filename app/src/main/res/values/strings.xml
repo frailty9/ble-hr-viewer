@@ -135,6 +135,7 @@
     <string name="privacy_consent_intro">BLE HR Viewer connects to Bluetooth heart rate devices and shows the reading on screen or in a floating overlay.</string>
     <string name="privacy_consent_data">BLE HR Viewer processes Bluetooth device names and addresses, heart rate readings, and diagnostic packets on this device. Heart rate is sensitive personal information. The app has no network permission and does not upload, share, or sell your data.</string>
     <string name="privacy_consent_permissions">Bluetooth (Nearby devices) permission is requested only after you agree and start scanning. Location permission is used only by Android 8–11 for Bluetooth scanning and never to locate you. Display over other apps and notifications are used only for the floating overlay.</string>
+    <string name="privacy_sensitive_consent">I consent to processing my heart rate readings (sensitive personal information) on this device.</string>
     <string name="privacy_consent_statement">By tapping Agree and continue, you confirm that you have read and agree to the Privacy Policy and User Agreement.</string>
     <string name="privacy_consent_agree">Agree and continue</string>
     <string name="privacy_consent_decline">Disagree and exit</string>

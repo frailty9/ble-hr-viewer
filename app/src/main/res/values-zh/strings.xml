@@ -132,6 +132,7 @@
     <string name="privacy_consent_intro">BLE HR Viewer 用于连接蓝牙心率设备，并在主界面或悬浮窗中显示实时心率。</string>
     <string name="privacy_consent_data">BLE HR Viewer 仅在本机处理蓝牙设备名称与地址、心率读数及诊断包。心率属于敏感个人信息。应用未声明网络权限，不会上传、共享或出售你的数据。</string>
     <string name="privacy_consent_permissions">蓝牙（附近的设备）权限仅在你同意并开始扫描后请求。定位权限仅在 Android 8–11 上用于蓝牙扫描，应用不会读取你的实际位置。“显示在其他应用上层”和通知权限仅用于心率悬浮窗。</string>
+    <string name="privacy_sensitive_consent">我同意在本机处理我的心率数据（敏感个人信息）。</string>
     <string name="privacy_consent_statement">点击“同意并继续”即表示你已阅读并同意《隐私政策》和《用户协议》。</string>
     <string name="privacy_consent_agree">同意并继续</string>
     <string name="privacy_consent_decline">不同意并退出</string>

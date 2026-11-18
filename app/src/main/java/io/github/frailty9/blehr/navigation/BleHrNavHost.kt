@@ -11,6 +11,10 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import io.github.frailty9.blehr.feature.privacy.PrivacyConsentScreen
+import io.github.frailty9.blehr.ui.legal.LegalDocument
+import io.github.frailty9.blehr.ui.legal.LegalDocumentScreen
 
 private const val TRANSITION_DURATION_MS = 250
 
@@ -18,13 +22,16 @@ private const val TRANSITION_DURATION_MS = 250
 @Composable
 fun BleHrNavHost(
     homeContent: @Composable (onOpenSettings: () -> Unit) -> Unit,
-    settingsContent: @Composable (onBack: () -> Unit) -> Unit,
+    settingsContent: @Composable (onBack: () -> Unit, onOpenDocument: (LegalDocument) -> Unit) -> Unit,
     modifier: Modifier = Modifier,
+    hasPrivacyConsent: Boolean = true,
+    onAcceptPrivacyConsent: () -> Unit = {},
+    onDeclinePrivacyConsent: () -> Unit = {},
     navController: NavHostController = rememberNavController(),
 ) {
     NavHost(
         navController = navController,
-        startDestination = HomeRoute,
+        startDestination = if (hasPrivacyConsent) HomeRoute else PrivacyConsentRoute,
         modifier = modifier,
         enterTransition = {
             slideIntoContainer(SlideDirection.Left, tween(TRANSITION_DURATION_MS)) +
@@ -43,15 +50,34 @@ fun BleHrNavHost(
                 fadeOut(tween(TRANSITION_DURATION_MS))
         },
     ) {
-        composable<HomeRoute> {
-            homeContent { navController.openSettings() }
+        if (hasPrivacyConsent) {
+            composable<HomeRoute> {
+                homeContent { navController.openSettings() }
+            }
+            composable<SettingsRoute> {
+                settingsContent({ navController.popBackStack() }, navController::openLegalDocument)
+            }
+        } else {
+            composable<PrivacyConsentRoute> {
+                PrivacyConsentScreen(
+                    onAgree = onAcceptPrivacyConsent,
+                    onDecline = onDeclinePrivacyConsent,
+                    onOpenDocument = navController::openLegalDocument,
+                )
+            }
         }
-        composable<SettingsRoute> {
-            settingsContent { navController.popBackStack() }
+        composable<LegalDocumentRoute> { entry ->
+            LegalDocumentScreen(entry.toRoute<LegalDocumentRoute>().document) {
+                navController.popBackStack()
+            }
         }
     }
 }
 
 internal fun NavController.openSettings() {
     navigate(SettingsRoute) { launchSingleTop = true }
+}
+
+private fun NavController.openLegalDocument(document: LegalDocument) {
+    navigate(LegalDocumentRoute(document)) { launchSingleTop = true }
 }

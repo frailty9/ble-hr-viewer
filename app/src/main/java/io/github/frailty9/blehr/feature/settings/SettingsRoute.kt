@@ -15,12 +15,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.frailty9.blehr.BuildConfig
 import io.github.frailty9.blehr.R
-import io.github.frailty9.blehr.core.findActivity
 import io.github.frailty9.blehr.data.heartrate.HeartRateRepository
 import io.github.frailty9.blehr.data.settings.AppLanguage
 import io.github.frailty9.blehr.data.settings.LanguageSettings
 import io.github.frailty9.blehr.ui.legal.LegalDocument
-import io.github.frailty9.blehr.ui.legal.LegalDocumentScreen
 import io.github.frailty9.blehr.ui.legal.LegalDocuments
 import io.github.frailty9.blehr.ui.theme.ErrorRed
 
@@ -28,6 +26,8 @@ import io.github.frailty9.blehr.ui.theme.ErrorRed
 fun SettingsRoute(
     onLanguageSelected: (AppLanguage) -> Unit,
     onBack: () -> Unit,
+    onOpenDocument: (LegalDocument) -> Unit,
+    onConsentWithdrawn: () -> Unit,
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val appearance by viewModel.appearance.collectAsStateWithLifecycle()
@@ -38,13 +38,7 @@ fun SettingsRoute(
     val heartRateState by heartRateRepository.ui.collectAsStateWithLifecycle()
     // Read configuration so a framework app-locale change refreshes the selected segment too.
     LocalConfiguration.current
-    var document by remember { mutableStateOf<LegalDocument?>(null) }
     var confirmWithdraw by remember { mutableStateOf(false) }
-    val activeDocument = document
-    if (activeDocument != null) {
-        LegalDocumentScreen(activeDocument) { document = null }
-        return
-    }
     SettingsScreen(
         language = LanguageSettings.selected(context),
         heartRateState = heartRateState,
@@ -63,9 +57,9 @@ fun SettingsRoute(
         versionName = BuildConfig.VERSION_NAME,
         contactEmail = LegalDocuments.CONTACT_EMAIL,
         filingNumber = BuildConfig.APP_FILING_NUMBER,
-        onOpenPrivacyPolicy = { document = LegalDocument.PRIVACY },
-        onOpenUserAgreement = { document = LegalDocument.AGREEMENT },
-        onOpenLicenses = { document = LegalDocument.LICENSES },
+        onOpenPrivacyPolicy = { onOpenDocument(LegalDocument.PRIVACY) },
+        onOpenUserAgreement = { onOpenDocument(LegalDocument.AGREEMENT) },
+        onOpenLicenses = { onOpenDocument(LegalDocument.LICENSES) },
         onWithdrawConsent = { confirmWithdraw = true },
     )
     if (confirmWithdraw) {
@@ -78,7 +72,7 @@ fun SettingsRoute(
                     onClick = {
                         confirmWithdraw = false
                         viewModel.withdrawConsent()
-                        context.findActivity()?.finishAffinity()
+                        onConsentWithdrawn()
                     },
                 ) {
                     Text(stringResource(R.string.withdraw_consent_confirm), color = ErrorRed)

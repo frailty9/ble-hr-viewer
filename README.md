@@ -168,9 +168,10 @@ apksigner verify --print-certs dist/ble-hr-viewer-1.0.0-SNAPSHOT.apk
 
 ## 合规与发布
 
-- 隐私政策：[PRIVACY.md](PRIVACY.md)；用户协议：[AGREEMENT.md](AGREEMENT.md)。
+- 隐私政策见 [PRIVACY.md](PRIVACY.md)，用户协议见 [AGREEMENT.md](AGREEMENT.md)。构建会从这两个文件的「中文」和「English」章节生成随 APK 打包的离线正文。修改条款时请直接编辑这两个文件。
 - 隐私政策公网地址（用于分发页或后续商店）：<https://github.com/frailty9/ble-hr-viewer/blob/main/PRIVACY.md>
 - 应用首次启动展示隐私提示，同意后才请求权限；设置页可查看法律文本并撤回同意。
+- 隐私政策有重大变更时，在 `PRIVACY.md` 源码顶部的 `consent-version` 注释中递增整数版本。新版会重新征求旧版用户的同意。校对和排版调整沿用原整数版本。
 - 在中国境内分发前，按 [APP 备案指引](docs/compliance/APP_FILING.md)办理备案。取得备案号后写入 `gradle.properties`：
 
   ```properties

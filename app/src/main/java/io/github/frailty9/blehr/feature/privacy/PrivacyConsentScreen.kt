@@ -1,6 +1,7 @@
 package io.github.frailty9.blehr.feature.privacy
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,10 +17,15 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -40,6 +46,7 @@ fun PrivacyConsentScreen(
     onOpenDocument: (LegalDocument) -> Unit,
 ) {
     BackHandler(onBack = onDecline)
+    var sensitiveAccepted by rememberSaveable { mutableStateOf(false) }
     Column(
         modifier = Modifier.fillMaxSize().testTag("privacy_consent")
             .windowInsetsPadding(WindowInsets.safeDrawing)
@@ -95,6 +102,25 @@ fun PrivacyConsentScreen(
                 }
             }
             Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth()
+                    .clickable { sensitiveAccepted = !sensitiveAccepted }
+                    .padding(vertical = 4.dp)
+                    .testTag("privacy_sensitive_consent"),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Checkbox(
+                    checked = sensitiveAccepted,
+                    onCheckedChange = { sensitiveAccepted = it },
+                )
+                Text(
+                    text = stringResource(R.string.privacy_sensitive_consent),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Ink,
+                    modifier = Modifier.padding(start = 4.dp),
+                )
+            }
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.privacy_consent_statement),
                 style = MaterialTheme.typography.bodySmall,
@@ -103,6 +129,7 @@ fun PrivacyConsentScreen(
             Spacer(Modifier.height(16.dp))
             Button(
                 onClick = onAgree,
+                enabled = sensitiveAccepted,
                 shape = LocalAppShapes.current.button,
                 modifier = Modifier.fillMaxWidth().testTag("privacy_agree"),
             ) {

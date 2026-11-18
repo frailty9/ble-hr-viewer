@@ -30,7 +30,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun withdrawConsent() {
         val context = getApplication<Application>()
         PrivacyConsentStore.withdraw(context)
-        HeartRateRepository.get(context).clearSession()
+        HeartRateRepository.get(context).clearSessionAndForgetDevice()
         repository.setOverlayEnabled(false)
         context.stopService(Intent(context, HeartRateOverlayService::class.java))
     }

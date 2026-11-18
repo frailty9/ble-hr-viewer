@@ -1,11 +1,15 @@
 package io.github.frailty9.blehr.ui.legal
 
 import android.content.Context
+import androidx.annotation.Keep
 import androidx.annotation.StringRes
 import io.github.frailty9.blehr.R
 import io.github.frailty9.blehr.data.settings.AppLanguage
 import io.github.frailty9.blehr.data.settings.LanguageSettings
+import kotlinx.serialization.Serializable
 
+@Keep
+@Serializable
 enum class LegalDocument(@StringRes val titleRes: Int) {
     PRIVACY(R.string.privacy_policy_title),
     AGREEMENT(R.string.user_agreement_title),

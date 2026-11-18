@@ -24,6 +24,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -88,12 +90,12 @@ class NavigationTest {
             listOf("android.permission.ACCESS_FINE_LOCATION")
         }
         for (permission in permissions) {
-            instrumentation.uiAutomation.executeShellCommand("pm grant io.github.frailty9.blehr $permission")
+            instrumentation.uiAutomation.executeShellCommand("pm grant ${instrumentation.targetContext.packageName} $permission")
                 .use { descriptor -> java.io.FileInputStream(descriptor.fileDescriptor).use { it.readBytes() } }
         }
         // Avoid startActivitySync: Android 17 OEM builds can leave its ActivityWaiter waiting.
         instrumentation.uiAutomation.executeShellCommand(
-            "am start -W -n io.github.frailty9.blehr/.MainActivity",
+            "am start -W -n ${instrumentation.targetContext.packageName}/${MainActivity::class.java.name}",
         ).use { descriptor ->
             java.io.FileInputStream(descriptor.fileDescriptor).use { it.readBytes() }
         }
@@ -147,13 +149,13 @@ class NavigationTest {
                     controller = testController
                     BleHrNavHost(
                         homeContent = { HomeContent(state, it) },
-                        settingsContent = { SettingsContent(it) },
+                        settingsContent = { back, _ -> SettingsContent(back) },
                         navController = testController,
                     )
                 } else {
                     BleHrNavHost(
                         homeContent = { HomeContent(state, it) },
-                        settingsContent = { SettingsContent(it) },
+                        settingsContent = { back, _ -> SettingsContent(back) },
                     )
                 }
             }
@@ -304,7 +306,7 @@ class NavigationTest {
                 BleHrTheme {
                     BleHrNavHost(
                         homeContent = { HomeContent(HeartRateState(), it) },
-                        settingsContent = { SettingsContent(it) },
+                        settingsContent = { back, _ -> SettingsContent(back) },
                     )
                 }
             }
@@ -398,6 +400,76 @@ class NavigationTest {
         }
         val settingsBefore = scrollPosition("settings_scroll")
         assertTrue(settingsBefore > 0)
+        recreateActivity()
+        compose.onNodeWithTag("settings_screen").assertIsDisplayed()
+        assertEquals(settingsBefore, scrollPosition("settings_scroll"), 1f)
+        compose.runOnUiThread { activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED }
+        compose.waitUntil(10_000) {
+            activity.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+        }
+        compose.runOnUiThread { activity.onBackPressedDispatcher.onBackPressed() }
+        compose.onNodeWithTag("home_screen").assertIsDisplayed()
+        assertEquals(homeBefore, scrollPosition("home_scroll"), 1f)
+    }
+
+    @Test
+    fun legalDocumentsReturnToTheSameSettingsScrollPosition() {
+        compose.onNodeWithContentDescription(settingsLabel).performClick()
+        for ((tag, title) in listOf(
+            "about_privacy" to R.string.privacy_policy_title,
+            "about_agreement" to R.string.user_agreement_title,
+            "about_licenses" to R.string.open_source_licenses_title,
+        )) {
+            val link = compose.onNodeWithTag(tag).performScrollTo()
+            val scrollBefore = scrollPosition("settings_scroll")
+            assertTrue(scrollBefore > 0)
+            link.performClick()
+            if (tag == "about_privacy") {
+                compose.onNodeWithTag("legal_screen").assertIsDisplayed()
+                recreateActivity()
+            }
+            compose.onNodeWithTag("legal_screen").assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(title)).assertIsDisplayed()
+            if (tag == "about_agreement") {
+                compose.runOnUiThread { activity.onBackPressedDispatcher.onBackPressed() }
+            } else {
+                compose.onNodeWithContentDescription(backLabel).performClick()
+            }
+            compose.onNodeWithTag("settings_screen").assertIsDisplayed()
+            assertEquals(scrollBefore, scrollPosition("settings_scroll"), 1f)
+        }
+    }
+
+    @Test
+    fun consentFlowPreservesTheCheckboxAndDiscardsTheUnapprovedAppStack() {
+        compose.onNodeWithContentDescription(settingsLabel).performClick()
+        compose.onNodeWithTag("settings_screen").assertIsDisplayed()
+        compose.runOnUiThread { PrivacyConsentStore.withdraw(activity) }
+        recreateActivity()
+        compose.onNodeWithTag("privacy_consent").assertIsDisplayed()
+        val agree = compose.onNodeWithTag("privacy_agree").assertIsNotEnabled()
+        compose.onNodeWithTag("privacy_sensitive_consent").performScrollTo().performClick()
+        val links = listOf(
+            "privacy_policy_link" to R.string.privacy_policy_title,
+            "user_agreement_link" to R.string.user_agreement_title,
+        )
+        for ((tag, title) in links) {
+            compose.onNodeWithTag(tag).performScrollTo().performClick()
+            compose.onNodeWithTag("legal_screen").assertIsDisplayed()
+            if (tag == "privacy_policy_link") recreateActivity()
+            compose.onNodeWithText(activity.getString(title)).assertIsDisplayed()
+            compose.runOnUiThread { activity.onBackPressedDispatcher.onBackPressed() }
+            compose.onNodeWithTag("privacy_consent").assertIsDisplayed()
+            agree.assertIsEnabled()
+        }
+        agree.performScrollTo().performClick()
+        compose.onNodeWithTag("home_screen").assertIsDisplayed()
+        recreateActivity()
+        compose.onNodeWithTag("home_screen").assertIsDisplayed()
+        compose.onNodeWithTag("settings_screen").assertDoesNotExist()
+    }
+
+    private fun recreateActivity() {
         val originalActivity = activity
         compose.runOnUiThread { originalActivity.recreate() }
         compose.waitUntil(10_000) {
@@ -408,14 +480,5 @@ class NavigationTest {
             }
             activity !== originalActivity
         }
-        compose.onNodeWithTag("settings_screen").assertIsDisplayed()
-        assertEquals(settingsBefore, scrollPosition("settings_scroll"), 1f)
-        compose.runOnUiThread { activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED }
-        compose.waitUntil(10_000) {
-            activity.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
-        }
-        compose.runOnUiThread { activity.onBackPressedDispatcher.onBackPressed() }
-        compose.onNodeWithTag("home_screen").assertIsDisplayed()
-        assertEquals(homeBefore, scrollPosition("home_scroll"), 1f)
     }
 }

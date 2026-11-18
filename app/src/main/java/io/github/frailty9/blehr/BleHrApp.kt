@@ -12,8 +12,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -28,11 +31,8 @@ import io.github.frailty9.blehr.data.settings.LanguageSettings
 import io.github.frailty9.blehr.data.settings.SettingsRepository
 import io.github.frailty9.blehr.feature.home.HomeRoute
 import io.github.frailty9.blehr.feature.home.HomeViewModel
-import io.github.frailty9.blehr.feature.privacy.PrivacyConsentScreen
 import io.github.frailty9.blehr.feature.settings.SettingsRoute
 import io.github.frailty9.blehr.navigation.BleHrNavHost
-import io.github.frailty9.blehr.ui.legal.LegalDocument
-import io.github.frailty9.blehr.ui.legal.LegalDocumentScreen
 import io.github.frailty9.blehr.ui.theme.BleHrTheme
 
 @Composable
@@ -45,30 +45,36 @@ fun BleHrApp(
     val settings = remember(context.applicationContext) { SettingsRepository.get(context) }
     val theme by settings.theme.collectAsStateWithLifecycle()
     var consented by remember { mutableStateOf(PrivacyConsentStore.isAccepted(context)) }
-    var legalDocument by remember { mutableStateOf<LegalDocument?>(null) }
+    var consentFlowVersion by rememberSaveable { mutableIntStateOf(0) }
     LocalizedContent {
         val dark = theme.isDark(isSystemInDarkTheme())
         SideEffect { onDarkThemeChanged(dark) }
         BleHrTheme(theme = theme) {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                val document = legalDocument
-                if (!consented) {
-                    if (document != null) {
-                        LegalDocumentScreen(document) { legalDocument = null }
-                    } else {
-                        PrivacyConsentScreen(
-                            onAgree = {
-                                PrivacyConsentStore.accept(context)
-                                consented = true
-                            },
-                            onDecline = { context.findActivity()?.finishAffinity() },
-                            onOpenDocument = { legalDocument = it },
-                        )
-                    }
-                } else {
+                // Isolate restored stacks by consent. A new decision also discards any older
+                // stack for the same consent state that the Activity has yet to restore.
+                key(consented, consentFlowVersion) {
                     BleHrNavHost(
                         homeContent = { openSettings -> HomeRoute(homeViewModel, openSettings) },
-                        settingsContent = { back -> SettingsRoute(onLanguageSelected, back) },
+                        settingsContent = { back, openDocument ->
+                            SettingsRoute(
+                                onLanguageSelected = onLanguageSelected,
+                                onBack = back,
+                                onOpenDocument = openDocument,
+                                onConsentWithdrawn = {
+                                    consentFlowVersion++
+                                    consented = false
+                                    context.findActivity()?.finishAffinity()
+                                },
+                            )
+                        },
+                        hasPrivacyConsent = consented,
+                        onAcceptPrivacyConsent = {
+                            PrivacyConsentStore.accept(context)
+                            consentFlowVersion++
+                            consented = true
+                        },
+                        onDeclinePrivacyConsent = { context.findActivity()?.finishAffinity() },
                     )
                 }
             }
