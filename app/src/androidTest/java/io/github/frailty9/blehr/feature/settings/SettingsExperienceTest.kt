@@ -1,6 +1,8 @@
 package io.github.frailty9.blehr.feature.settings
 
+import android.Manifest
 import android.app.NotificationManager
+import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.setContent
@@ -246,6 +248,17 @@ class SettingsExperienceTest {
     @Test
     fun overlayButtonAndNotificationCloseStayInSyncWithTheSavedState() {
         assumeTrue("Overlay permission is needed on the test device", Settings.canDrawOverlays(activity))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permission = Manifest.permission.POST_NOTIFICATIONS
+            val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+            automation.executeShellCommand("pm grant ${activity.packageName} $permission")
+                .use { java.io.FileInputStream(it.fileDescriptor).use { input -> input.readBytes() } }
+            assertEquals(
+                "The notification close action requires notification permission",
+                PackageManager.PERMISSION_GRANTED,
+                activity.checkSelfPermission(permission),
+            )
+        }
         val wasEnabled = repository.isOverlayEnabled
         val notifications = activity.getSystemService(NotificationManager::class.java)
         val strings = LanguageSettings.localizedContext(activity)

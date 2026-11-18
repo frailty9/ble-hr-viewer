@@ -11,7 +11,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,19 +33,24 @@ fun HomeRoute(viewModel: HomeViewModel, onOpenSettings: () -> Unit) {
     val overlayVisible by HeartRateOverlayService.isVisible.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     val blePermissions = remember { requiredBlePermissions() }
-    val requestedPermissions = remember {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            blePermissions + Manifest.permission.POST_NOTIFICATIONS
-        } else blePermissions
-    }
     var granted by remember { mutableStateOf(hasBlePermissions(context, blePermissions)) }
-    var asked by rememberSaveable { mutableStateOf(false) }
     var overlayPending by rememberSaveable { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) {
         granted = hasBlePermissions(context, blePermissions)
         if (granted) HeartRateOverlayService.restoreIfEnabled(context)
+    }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { }
+    val requestNotificationPermission = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
     }
     val overlayPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
@@ -66,12 +70,6 @@ fun HomeRoute(viewModel: HomeViewModel, onOpenSettings: () -> Unit) {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-    LaunchedEffect(Unit) {
-        if (!granted && !asked) {
-            asked = true
-            permissionLauncher.launch(requestedPermissions)
-        }
     }
     if (granted) {
         DisposableEffect(lifecycleOwner, viewModel) {
@@ -96,8 +94,12 @@ fun HomeRoute(viewModel: HomeViewModel, onOpenSettings: () -> Unit) {
             onToggleOverlay = {
                 when {
                     HeartRateOverlayService.isVisible.value -> HeartRateOverlayService.hide(context)
-                    Settings.canDrawOverlays(context) -> HeartRateOverlayService.show(context)
+                    Settings.canDrawOverlays(context) -> {
+                        requestNotificationPermission()
+                        HeartRateOverlayService.show(context)
+                    }
                     !overlayPending -> {
+                        requestNotificationPermission()
                         overlayPending = true
                         overlayPermissionLauncher.launch(
                             Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:${context.packageName}".toUri()),
@@ -109,7 +111,7 @@ fun HomeRoute(viewModel: HomeViewModel, onOpenSettings: () -> Unit) {
     } else {
         PermissionGate(
             onOpenSettingsPage = onOpenSettings,
-            onRequest = { permissionLauncher.launch(requestedPermissions) },
+            onRequest = { permissionLauncher.launch(blePermissions) },
             onOpenSettings = {
                 context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${context.packageName}".toUri()))
             },

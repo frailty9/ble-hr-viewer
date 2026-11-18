@@ -49,7 +49,7 @@
     <string name="help_no_contact">3. Without skin contact, the device may report 0 BPM or no contact, or stop sending readings.</string>
     <string name="help_bad_packets">4. Invalid packets appear in the Invalid packets card. Listening continues.</string>
     <string name="bluetooth_permission_title">Bluetooth permission needed</string>
-    <string name="bluetooth_permission_description">Android 12 and later require Nearby devices permission to scan and connect. Android 11 and earlier require location permission for BLE scanning. Notification permission is also requested for the overlay service; denying it does not block the main screen.</string>
+    <string name="bluetooth_permission_description">Android 12 and later require Nearby devices permission to scan and connect. Android 11 and earlier require location permission for BLE scanning. The app asks only after you tap Grant permission. Notification permission is requested separately when you enable the floating overlay.</string>
     <string name="grant_permission">Grant permission</string>
     <string name="open_app_settings">App settings</string>
     <string name="overlay_permission_denied">Permission to display over other apps was not granted</string>
