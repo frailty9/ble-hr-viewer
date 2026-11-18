@@ -76,6 +76,7 @@
     <string name="status_disconnected">Disconnected</string>
     <string name="status_waiting">Connected; waiting for heart rate readings</string>
     <string name="status_subscribed">Subscribed; waiting for readings (your device may stop sending them when not worn)</string>
+    <string name="status_startup_reconnect_failed">Couldn’t reach the last device. Tap Scan BLE to reconnect.</string>
     <string name="status_reconnect">%1$s. You can reconnect.</string>
     <string name="status_bad_packet">Invalid packet ignored; listening continues</string>
     <string name="status_no_contact">No skin contact; heart rate may be invalid</string>

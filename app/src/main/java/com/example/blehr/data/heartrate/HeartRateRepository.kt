@@ -33,11 +33,21 @@ class HeartRateRepository private constructor(context: Context) {
         }
     }
 
+    private val recentDevice = RecentHeartRateDeviceStore(context)
+    private val startupReconnect = StartupReconnect()
     private val client = BleHeartRateClient(context) { event -> onBleEvent(event) }
     private val _ui = MutableStateFlow(HeartRateState())
     val ui: StateFlow<HeartRateState> = _ui.asStateFlow()
 
+    fun reconnectAtStartup() {
+        startupReconnect.tryOnce {
+            val device = recentDevice.read() ?: return@tryOnce false
+            client.connectRecent(device.address, device.name, device.addressType)
+        }
+    }
+
     fun startScan() {
+        if (startupReconnect.finish()) client.disconnect()
         _ui.update {
             it.copy(
                 scanning = true,
@@ -58,6 +68,7 @@ class HeartRateRepository private constructor(context: Context) {
     }
 
     fun connect(device: ScannedDevice) {
+        startupReconnect.finish()
         _ui.update {
             it.copy(
                 scanning = false,
@@ -74,6 +85,7 @@ class HeartRateRepository private constructor(context: Context) {
     }
 
     fun disconnect() {
+        startupReconnect.finish()
         client.disconnect()
         _ui.update {
             it.copy(
@@ -84,6 +96,7 @@ class HeartRateRepository private constructor(context: Context) {
     }
 
     fun shutdown() {
+        startupReconnect.finish()
         client.close()
     }
 
@@ -129,27 +142,38 @@ class HeartRateRepository private constructor(context: Context) {
                     connection = ConnectionPhase.CONNECTING,
                     connectedName = event.name,
                     connectedAddress = event.address,
-                    status = uiText(R.string.status_connecting, event.name ?: uiText(R.string.unknown_device)),
+                    status = uiText(R.string.status_connecting, event.name ?: event.address),
                 )
             }
 
-            is BleEvent.Connected -> _ui.update {
-                it.copy(
-                    connection = ConnectionPhase.CONNECTED,
-                    connectedName = event.name,
-                    connectedAddress = event.address,
-                    status = uiText(R.string.status_subscribed),
-                    sample = null,
-                    history = emptyList(),
-                    lastRawHex = "",
-                )
+            is BleEvent.Connected -> {
+                startupReconnect.finish()
+                val name = event.name ?: _ui.value.connectedName
+                recentDevice.save(RecentHeartRateDevice(event.address, name, event.addressType))
+                _ui.update {
+                    it.copy(
+                        connection = ConnectionPhase.CONNECTED,
+                        connectedName = name,
+                        connectedAddress = event.address,
+                        status = uiText(R.string.status_subscribed),
+                        sample = null,
+                        history = emptyList(),
+                        lastRawHex = "",
+                    )
+                }
             }
 
-            is BleEvent.Disconnected -> _ui.update {
-                it.copy(
-                    connection = ConnectionPhase.DISCONNECTED,
-                    status = uiText(R.string.status_reconnect, event.message),
-                )
+            is BleEvent.Disconnected -> {
+                if (startupReconnect.finish()) {
+                    showStartupReconnectFailure()
+                } else {
+                    _ui.update {
+                        it.copy(
+                            connection = ConnectionPhase.DISCONNECTED,
+                            status = uiText(R.string.status_reconnect, event.message),
+                        )
+                    }
+                }
             }
 
             is BleEvent.Notification -> {
@@ -175,13 +199,30 @@ class HeartRateRepository private constructor(context: Context) {
                 )
             }
 
-            is BleEvent.Error -> _ui.update {
-                it.copy(
-                    scanning = false,
-                    connection = ConnectionPhase.ERROR,
-                    status = event.message,
-                )
+            is BleEvent.Error -> {
+                if (startupReconnect.finish()) {
+                    showStartupReconnectFailure()
+                } else {
+                    _ui.update {
+                        it.copy(
+                            scanning = false,
+                            connection = ConnectionPhase.ERROR,
+                            status = event.message,
+                        )
+                    }
+                }
             }
+        }
+    }
+
+    private fun showStartupReconnectFailure() {
+        _ui.update {
+            it.copy(
+                connection = ConnectionPhase.IDLE,
+                connectedName = null,
+                connectedAddress = null,
+                status = uiText(R.string.status_startup_reconnect_failed),
+            )
         }
     }
 

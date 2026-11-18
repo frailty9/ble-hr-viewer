@@ -20,6 +20,7 @@ sealed interface BleEvent {
         val name: String?,
         val address: String,
         val services: List<String>,
+        val addressType: Int?,
     ) : BleEvent
     data class Disconnected(val message: UiText) : BleEvent
     data class Notification(val sample: HeartRateSample) : BleEvent
