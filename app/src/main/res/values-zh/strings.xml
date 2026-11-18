@@ -9,10 +9,6 @@
     <string name="phase_idle">未连接</string>
     <string name="unknown_device">未知设备</string>
     <string name="unnamed_device">未命名设备</string>
-    <string name="device_connecting">正在连接…</string>
-    <string name="device_scanning">正在扫描附近设备…</string>
-    <string name="device_connection_error">连接异常，请重试</string>
-    <string name="device_not_connected">未连接心率设备</string>
     <string name="contact_unknown" tools:ignore="TypographyDashes">接触: --</string>
     <string name="contact_not_detected">接触: 未检测</string>
     <string name="no_pulse">无脉搏信号</string>

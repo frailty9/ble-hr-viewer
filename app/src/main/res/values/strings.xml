@@ -10,10 +10,6 @@
     <string name="phase_idle">Not connected</string>
     <string name="unknown_device">Unknown device</string>
     <string name="unnamed_device">Unnamed device</string>
-    <string name="device_connecting">Connecting…</string>
-    <string name="device_scanning">Scanning nearby devices…</string>
-    <string name="device_connection_error">Connection error. Please retry.</string>
-    <string name="device_not_connected">No device connected</string>
     <string name="contact_unknown" tools:ignore="TypographyDashes">Contact: --</string>
     <string name="contact_not_detected">Contact: not detected</string>
     <string name="no_pulse">No pulse detected</string>
