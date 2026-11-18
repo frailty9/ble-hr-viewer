@@ -70,7 +70,7 @@
 | Navigation Compose | 2.8.9 |
 | Lifecycle | 2.8.3 |
 | Android SDK | compileSdk / targetSdk 35，minSdk 26 |
-| 应用版本 | 0.4.3（versionCode 18） |
+| 应用版本 | 0.4.4-SNAPSHOT（versionCode 19） |
 
 使用 Android Studio 打开项目并配置 Android SDK，或在本机的 `local.properties` 中设置 `sdk.dir`。该文件不提交到 Git。
 
@@ -78,14 +78,14 @@ Windows：
 
 ```powershell
 .\gradlew.bat :app:assembleDebug
-adb install -r dist\ble-hr-viewer-0.4.3-debug.apk
+adb install -r dist\ble-hr-viewer-0.4.4-SNAPSHOT-debug.apk
 ```
 
 Linux / macOS：
 
 ```sh
 ./gradlew :app:assembleDebug
-adb install -r dist/ble-hr-viewer-0.4.3-debug.apk
+adb install -r dist/ble-hr-viewer-0.4.4-SNAPSHOT-debug.apk
 ```
 
 构建完成后会自动将带产品名和版本号的 APK 导出到 `dist/`，版本号取自构建配置。
@@ -143,8 +143,8 @@ Windows 使用以下命令；Linux / macOS 将 `.\gradlew.bat` 替换为 `./grad
 ```
 
 - 发布前核对 `app/build.gradle.kts` 中的 `versionCode`、`versionName` 和本文件的版本信息。
-- Debug APK 用于本地测试，导出为 `ble-hr-viewer-0.4.3-debug.apk`。
-- 当前未配置 release 签名，`assembleRelease` 导出的是 `ble-hr-viewer-0.4.3-unsigned.apk`；正式分发前需使用维护者自己的签名密钥生成签名 APK，签名后的正式包命名为 `ble-hr-viewer-0.4.3.apk`。
+- Debug APK 用于本地测试，导出为 `ble-hr-viewer-0.4.4-SNAPSHOT-debug.apk`。
+- 当前未配置 release 签名，`assembleRelease` 导出的是 `ble-hr-viewer-0.4.4-SNAPSHOT-unsigned.apk`；正式分发前需使用维护者自己的签名密钥生成签名 APK，签名后的正式包命名为 `ble-hr-viewer-0.4.4-SNAPSHOT.apk`。
 - 签名密钥、密码和本机配置不入库。安装包及其 SHA-256 校验值作为发布附件提供，构建产物不提交到 Git。
 - 在真机上检查设备扫描、心率订阅、断开连接，以及悬浮窗的授权、后台显示、拖动和长按关闭。
 
