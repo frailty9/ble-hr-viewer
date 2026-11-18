@@ -1,6 +1,8 @@
 import com.android.build.api.artifact.SingleArtifact
 import java.util.Properties
 
+val appFilingNumber = providers.gradleProperty("app.filingNumber").orElse("").get()
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -24,6 +26,7 @@ android {
         targetSdk = 35
         versionCode = 21
         versionName = "1.0.0-SNAPSHOT"
+        buildConfigField("String", "APP_FILING_NUMBER", "\"$appFilingNumber\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

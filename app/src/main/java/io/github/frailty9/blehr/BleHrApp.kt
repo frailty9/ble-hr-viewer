@@ -21,13 +21,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.frailty9.blehr.core.findActivity
+import io.github.frailty9.blehr.data.privacy.PrivacyConsentStore
 import io.github.frailty9.blehr.data.settings.AppLanguage
 import io.github.frailty9.blehr.data.settings.LanguageSettings
 import io.github.frailty9.blehr.data.settings.SettingsRepository
 import io.github.frailty9.blehr.feature.home.HomeRoute
 import io.github.frailty9.blehr.feature.home.HomeViewModel
+import io.github.frailty9.blehr.feature.privacy.PrivacyConsentScreen
 import io.github.frailty9.blehr.feature.settings.SettingsRoute
 import io.github.frailty9.blehr.navigation.BleHrNavHost
+import io.github.frailty9.blehr.ui.legal.LegalDocument
+import io.github.frailty9.blehr.ui.legal.LegalDocumentScreen
 import io.github.frailty9.blehr.ui.theme.BleHrTheme
 
 @Composable
@@ -39,15 +44,33 @@ fun BleHrApp(
     val context = LocalContext.current
     val settings = remember(context.applicationContext) { SettingsRepository.get(context) }
     val theme by settings.theme.collectAsStateWithLifecycle()
+    var consented by remember { mutableStateOf(PrivacyConsentStore.isAccepted(context)) }
+    var legalDocument by remember { mutableStateOf<LegalDocument?>(null) }
     LocalizedContent {
         val dark = theme.isDark(isSystemInDarkTheme())
         SideEffect { onDarkThemeChanged(dark) }
         BleHrTheme(theme = theme) {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                BleHrNavHost(
-                    homeContent = { openSettings -> HomeRoute(homeViewModel, openSettings) },
-                    settingsContent = { back -> SettingsRoute(onLanguageSelected, back) },
-                )
+                val document = legalDocument
+                if (!consented) {
+                    if (document != null) {
+                        LegalDocumentScreen(document) { legalDocument = null }
+                    } else {
+                        PrivacyConsentScreen(
+                            onAgree = {
+                                PrivacyConsentStore.accept(context)
+                                consented = true
+                            },
+                            onDecline = { context.findActivity()?.finishAffinity() },
+                            onOpenDocument = { legalDocument = it },
+                        )
+                    }
+                } else {
+                    BleHrNavHost(
+                        homeContent = { openSettings -> HomeRoute(homeViewModel, openSettings) },
+                        settingsContent = { back -> SettingsRoute(onLanguageSelected, back) },
+                    )
+                }
             }
         }
     }

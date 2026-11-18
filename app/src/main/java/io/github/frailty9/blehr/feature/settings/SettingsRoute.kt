@@ -1,15 +1,28 @@
 package io.github.frailty9.blehr.feature.settings
 
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.frailty9.blehr.BuildConfig
+import io.github.frailty9.blehr.R
+import io.github.frailty9.blehr.core.findActivity
 import io.github.frailty9.blehr.data.heartrate.HeartRateRepository
 import io.github.frailty9.blehr.data.settings.AppLanguage
 import io.github.frailty9.blehr.data.settings.LanguageSettings
+import io.github.frailty9.blehr.ui.legal.LegalDocument
+import io.github.frailty9.blehr.ui.legal.LegalDocumentScreen
+import io.github.frailty9.blehr.ui.legal.LegalDocuments
+import io.github.frailty9.blehr.ui.theme.ErrorRed
 
 @Composable
 fun SettingsRoute(
@@ -25,6 +38,13 @@ fun SettingsRoute(
     val heartRateState by heartRateRepository.ui.collectAsStateWithLifecycle()
     // Read configuration so a framework app-locale change refreshes the selected segment too.
     LocalConfiguration.current
+    var document by remember { mutableStateOf<LegalDocument?>(null) }
+    var confirmWithdraw by remember { mutableStateOf(false) }
+    val activeDocument = document
+    if (activeDocument != null) {
+        LegalDocumentScreen(activeDocument) { document = null }
+        return
+    }
     SettingsScreen(
         language = LanguageSettings.selected(context),
         heartRateState = heartRateState,
@@ -40,5 +60,35 @@ fun SettingsRoute(
         onFontColorChanged = viewModel::setFontColor,
         onFontAlphaChanged = viewModel::setFontAlpha,
         onResetAppearance = viewModel::resetAppearance,
+        versionName = BuildConfig.VERSION_NAME,
+        contactEmail = LegalDocuments.CONTACT_EMAIL,
+        filingNumber = BuildConfig.APP_FILING_NUMBER,
+        onOpenPrivacyPolicy = { document = LegalDocument.PRIVACY },
+        onOpenUserAgreement = { document = LegalDocument.AGREEMENT },
+        onOpenLicenses = { document = LegalDocument.LICENSES },
+        onWithdrawConsent = { confirmWithdraw = true },
     )
+    if (confirmWithdraw) {
+        AlertDialog(
+            onDismissRequest = { confirmWithdraw = false },
+            title = { Text(stringResource(R.string.withdraw_consent_title)) },
+            text = { Text(stringResource(R.string.withdraw_consent_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmWithdraw = false
+                        viewModel.withdrawConsent()
+                        context.findActivity()?.finishAffinity()
+                    },
+                ) {
+                    Text(stringResource(R.string.withdraw_consent_confirm), color = ErrorRed)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmWithdraw = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
 }

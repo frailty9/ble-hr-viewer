@@ -50,6 +50,7 @@ import io.github.frailty9.blehr.R
 import io.github.frailty9.blehr.ble.HeartRateSample
 import io.github.frailty9.blehr.ble.ScannedDevice
 import io.github.frailty9.blehr.ble.SensorContact
+import io.github.frailty9.blehr.data.privacy.PrivacyConsentStore
 import io.github.frailty9.blehr.data.heartrate.ConnectionPhase
 import io.github.frailty9.blehr.data.heartrate.HeartRateState
 import io.github.frailty9.blehr.data.settings.AppLanguage
@@ -80,6 +81,7 @@ class NavigationTest {
     @Before
     fun launchActualActivity() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
+        PrivacyConsentStore.accept(instrumentation.targetContext)
         val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             listOf("android.permission.BLUETOOTH_SCAN", "android.permission.BLUETOOTH_CONNECT")
         } else {

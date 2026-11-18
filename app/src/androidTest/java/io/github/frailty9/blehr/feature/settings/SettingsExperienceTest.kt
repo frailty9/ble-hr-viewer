@@ -27,6 +27,7 @@ import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
 import io.github.frailty9.blehr.MainActivity
 import io.github.frailty9.blehr.R
+import io.github.frailty9.blehr.data.privacy.PrivacyConsentStore
 import io.github.frailty9.blehr.data.settings.AppLanguage
 import io.github.frailty9.blehr.data.settings.AppTheme
 import io.github.frailty9.blehr.data.settings.LanguageSettings
@@ -60,6 +61,7 @@ class SettingsExperienceTest {
     fun launchActualActivity() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
+        PrivacyConsentStore.accept(context)
         repository = SettingsRepository.get(context)
         originalAppearance = repository.appearance.value
         originalTheme = repository.theme.value

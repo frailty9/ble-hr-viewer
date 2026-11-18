@@ -161,12 +161,12 @@ class HeartRateRepository private constructor(context: Context) {
         showDisconnected(uiText(R.string.status_disconnected))
     }
 
-    fun shutdown() {
+    fun clearSession() {
         startupReconnect.finish()
         recovery.reset()
+        recoveryDevice = null
         client.close()
-        _ui.update { it.copy(scanning = false) }
-        showDisconnected(uiText(R.string.status_disconnected))
+        _ui.value = HeartRateState()
     }
 
     private fun onBleEvent(event: BleEvent) {

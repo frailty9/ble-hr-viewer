@@ -66,8 +66,7 @@ class BleHeartRateClient(
         appContext.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
     private val adapter get() = bluetoothManager?.adapter
 
-    @Volatile
-    private var scanner = false
+    private var activeScan: ScanCallback? = null
     private var gatt: BluetoothGatt? = null
     private var connectedEmitted = false
     private val scanResults = ConcurrentHashMap<String, ScannedDevice>()
@@ -78,7 +77,7 @@ class BleHeartRateClient(
     }
 
     private val scanTimeout = Runnable {
-        if (scanner) {
+        if (activeScan != null) {
             stopScanInternal()
             onEvent(BleEvent.ScanFinished(uiText(R.string.scan_finished)))
         }
@@ -102,25 +101,22 @@ class BleHeartRateClient(
         }
     }
 
-    private val scanCallback = object : ScanCallback() {
+    private fun createScanCallback() = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            if (!scanner) return
+            if (activeScan !== this) return
             addScanResult(result)
             scheduleScanFlush()
         }
 
         override fun onBatchScanResults(results: MutableList<ScanResult>) {
-            if (!scanner) return
+            if (activeScan !== this) return
             results.forEach(::addScanResult)
             scheduleScanFlush()
         }
 
         override fun onScanFailed(errorCode: Int) {
-            if (!scanner) return
-            scanner = false
-            handler.removeCallbacks(scanTimeout)
-            handler.removeCallbacks(scanFlushRunnable)
-            scanFlushScheduled.set(false)
+            if (activeScan !== this) return
+            stopScanInternal(emitFinalResults = false)
             Log.w(TAG, "BLE scan failed: errorCode=$errorCode")
             onEvent(BleEvent.ScanFailed(uiText(R.string.scan_failed, errorCode)))
         }
@@ -278,7 +274,7 @@ class BleHeartRateClient(
     }
 
     fun startScan() {
-        if (scanner) return
+        if (activeScan != null) return
         val adapter = adapter
         if (adapter == null) {
             onEvent(BleEvent.ScanFailed(uiText(R.string.bluetooth_unsupported)))
@@ -304,38 +300,42 @@ class BleHeartRateClient(
         scanResults.clear()
         handler.removeCallbacks(scanFlushRunnable)
         scanFlushScheduled.set(false)
-        scanner = true
+        val callback = createScanCallback()
+        activeScan = callback
         try {
-            leScanner.startScan(null, settings, scanCallback)
+            leScanner.startScan(null, settings, callback)
             handler.postDelayed(scanTimeout, SCAN_TIMEOUT_MS)
             if (BuildConfig.DEBUG) Log.d(TAG, "BLE scan started (mode=$SCAN_MODE, 500ms UI batches)")
         } catch (exc: SecurityException) {
-            scanner = false
+            stopScanInternal(emitFinalResults = false)
             onEvent(BleEvent.ScanFailed(uiText(R.string.scan_permission_missing)))
         } catch (exc: Exception) {
-            scanner = false
+            stopScanInternal(emitFinalResults = false)
             onEvent(BleEvent.ScanFailed(uiText(R.string.scan_start_failed, exc.message ?: uiText(R.string.unknown_error))))
         }
     }
 
     fun stopScan() {
-        if (!scanner) return
+        if (activeScan == null) return
         stopScanInternal()
         onEvent(BleEvent.ScanFinished(uiText(R.string.scan_stopped)))
     }
 
-    private fun stopScanInternal() {
-        if (!scanner) return
-        scanner = false
+    private fun stopScanInternal(emitFinalResults: Boolean = true) {
+        val callback = activeScan
+        activeScan = null
         handler.removeCallbacks(scanTimeout)
         handler.removeCallbacks(scanFlushRunnable)
         scanFlushScheduled.set(false)
-        try {
-            adapter?.bluetoothLeScanner?.stopScan(scanCallback)
-        } catch (_: SecurityException) {
-            // Permission revoked while scanning.
+        if (callback != null) {
+            try {
+                adapter?.bluetoothLeScanner?.stopScan(callback)
+            } catch (_: SecurityException) {
+                // Permission revoked while scanning.
+            }
+            if (emitFinalResults) emitScanSnapshot()
         }
-        emitScanSnapshot()
+        scanResults.clear()
     }
 
     fun connect(scanned: ScannedDevice) {
@@ -405,7 +405,7 @@ class BleHeartRateClient(
     }
 
     fun close() {
-        stopScanInternal()
+        stopScanInternal(emitFinalResults = false)
         disconnect()
     }
 

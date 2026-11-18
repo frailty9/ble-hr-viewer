@@ -1,9 +1,13 @@
 package io.github.frailty9.blehr.feature.settings
 
 import android.app.Application
+import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
+import io.github.frailty9.blehr.data.heartrate.HeartRateRepository
+import io.github.frailty9.blehr.data.privacy.PrivacyConsentStore
 import io.github.frailty9.blehr.data.settings.AppTheme
 import io.github.frailty9.blehr.data.settings.SettingsRepository
+import io.github.frailty9.blehr.overlay.HeartRateOverlayService
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = SettingsRepository.get(application)
@@ -19,4 +23,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setFontColor(color: Int) = repository.setFontColor(color)
     fun setFontAlpha(alpha: Float) = repository.setFontAlpha(alpha)
     fun resetAppearance() = repository.reset()
+
+    fun withdrawConsent() {
+        val context = getApplication<Application>()
+        PrivacyConsentStore.withdraw(context)
+        HeartRateRepository.get(context).clearSession()
+        repository.setOverlayEnabled(false)
+        context.stopService(Intent(context, HeartRateOverlayService::class.java))
+    }
 }

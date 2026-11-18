@@ -26,6 +26,7 @@ import androidx.core.content.ContextCompat
 import io.github.frailty9.blehr.MainActivity
 import io.github.frailty9.blehr.R
 import io.github.frailty9.blehr.data.heartrate.HeartRateRepository
+import io.github.frailty9.blehr.data.privacy.PrivacyConsentStore
 import io.github.frailty9.blehr.data.settings.LanguageSettings
 import io.github.frailty9.blehr.data.settings.SettingsRepository
 import kotlin.math.max
@@ -123,7 +124,7 @@ class HeartRateOverlayService : Service() {
         }
         val restoring = intent?.action == ACTION_RESTORE
         // A close action may have arrived while the activity's restore request was queued.
-        if (restoring && !settings.isOverlayEnabled) {
+        if (!PrivacyConsentStore.isAccepted(this) || (restoring && !settings.isOverlayEnabled)) {
             stopSelf()
             return START_NOT_STICKY
         }

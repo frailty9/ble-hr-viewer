@@ -8,6 +8,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import io.github.frailty9.blehr.data.privacy.PrivacyConsentStore
 import io.github.frailty9.blehr.data.settings.LanguageSettings
 import io.github.frailty9.blehr.data.settings.SettingsRepository
 import io.github.frailty9.blehr.feature.home.HomeViewModel
@@ -33,7 +34,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onPostResume() {
         super.onPostResume()
-        HeartRateOverlayService.restoreIfEnabled(this)
+        if (PrivacyConsentStore.isAccepted(this)) {
+            HeartRateOverlayService.restoreIfEnabled(this)
+        }
     }
 
     private fun updateSystemBars(dark: Boolean) {

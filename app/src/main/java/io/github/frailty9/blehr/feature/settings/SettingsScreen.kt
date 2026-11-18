@@ -30,6 +30,7 @@ import io.github.frailty9.blehr.data.settings.AppLanguage
 import io.github.frailty9.blehr.data.settings.AppTheme
 import io.github.frailty9.blehr.data.settings.DEFAULT_HEART_RATE_TIMEOUT_SECONDS
 import io.github.frailty9.blehr.data.settings.OverlayAppearance
+import io.github.frailty9.blehr.feature.settings.components.AboutCard
 import io.github.frailty9.blehr.feature.settings.components.BluetoothConnectionSettings
 import io.github.frailty9.blehr.feature.settings.components.ErrorCard
 import io.github.frailty9.blehr.feature.settings.components.HelpCard
@@ -55,6 +56,13 @@ fun SettingsScreen(
     onThemeSelected: (AppTheme) -> Unit = {},
     heartRateTimeoutSeconds: Int = DEFAULT_HEART_RATE_TIMEOUT_SECONDS,
     onHeartRateTimeoutChanged: (Int) -> Unit = {},
+    versionName: String = "",
+    contactEmail: String = "",
+    filingNumber: String = "",
+    onOpenPrivacyPolicy: () -> Unit = {},
+    onOpenUserAgreement: () -> Unit = {},
+    onOpenLicenses: () -> Unit = {},
+    onWithdrawConsent: () -> Unit = {},
 ) {
     Box(
         Modifier.fillMaxSize().testTag("settings_screen")
@@ -98,6 +106,15 @@ fun SettingsScreen(
                 PacketCard(heartRateState)
                 ErrorCard(heartRateState)
                 HelpCard()
+                AboutCard(
+                    versionName = versionName,
+                    contactEmail = contactEmail,
+                    filingNumber = filingNumber,
+                    onOpenPrivacyPolicy = onOpenPrivacyPolicy,
+                    onOpenUserAgreement = onOpenUserAgreement,
+                    onOpenLicenses = onOpenLicenses,
+                    onWithdrawConsent = onWithdrawConsent,
+                )
             }
         }
     }

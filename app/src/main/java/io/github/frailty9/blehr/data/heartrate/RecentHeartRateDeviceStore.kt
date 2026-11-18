@@ -4,10 +4,12 @@ import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import androidx.core.content.edit
 
+internal const val RECENT_DEVICE_PREFERENCES = "recent_heart_rate_device"
+
 internal data class RecentHeartRateDevice(val address: String, val name: String?, val addressType: Int?)
 
 internal class RecentHeartRateDeviceStore(context: Context) {
-    private val preferences = context.getSharedPreferences("recent_heart_rate_device", Context.MODE_PRIVATE)
+    private val preferences = context.getSharedPreferences(RECENT_DEVICE_PREFERENCES, Context.MODE_PRIVATE)
 
     fun read(): RecentHeartRateDevice? {
         val address = preferences.getString("address", null) ?: return null
