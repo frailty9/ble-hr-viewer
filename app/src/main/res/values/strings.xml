@@ -20,7 +20,7 @@
     <string name="contact_detected">Contact: detected</string>
     <string name="contact_unsupported">Contact: unsupported</string>
     <string name="warnings_summary">Warnings: %1$s</string>
-    <string name="no_pulse_description">No pulse detected (0 BPM). Some bands still report contact when not worn; use the 0 BPM reading as the signal. Raw packets are still logged.</string>
+    <string name="no_pulse_description">No pulse detected (0 BPM). A reading of 0 BPM is not a valid heart rate, even if the device reports skin contact. Raw packets are still logged.</string>
     <string name="no_contact_description">The device reports no skin contact. Heart rate data may be invalid.</string>
     <string name="trend_title">Heart rate trend</string>
     <string name="trend_waiting">Waiting for more readings…</string>
@@ -42,7 +42,7 @@
     <string name="permission_granted">Allowed</string>
     <string name="permission_required">Permission needed</string>
     <string name="overlay_description">A compact overlay with a static heart and a three-digit BPM field. Requires permission to display over other apps. Drag to move; long-press to close. Taps do nothing to avoid accidental actions while gaming.</string>
-    <string name="overlay_hint" tools:ignore="TypographyDashes">Connect your device first. The overlay shows -- without data, or 0 when the device reports no pulse.</string>
+    <string name="overlay_hint" tools:ignore="TypographyDashes">Connect a heart rate device first. The overlay shows -- when no data is available, or 0 when the device reports 0 BPM.</string>
     <string name="overlay_show">Show overlay</string>
     <string name="overlay_allow_show">Allow and show</string>
     <string name="overlay_appearance">Overlay appearance</string>
@@ -54,9 +54,9 @@
     <string name="error_packets">Invalid packets</string>
     <string name="no_error_packets">No invalid notification packets received.</string>
     <string name="help_title">Tips</string>
-    <string name="help_enable_sharing">1. Enable heart rate sharing in your device settings or companion app.</string>
+    <string name="help_enable_sharing">1. Make sure heart rate sharing is enabled. If needed, check your device settings or companion app.</string>
     <string name="help_standard_service">2. This app receives the standard GATT heart rate service: 0x180D / 0x2A37.</string>
-    <string name="help_no_contact">3. When not worn, your device may report 0 BPM, no contact, or stop sending readings.</string>
+    <string name="help_no_contact">3. Without skin contact, the device may report 0 BPM or no contact, or stop sending readings.</string>
     <string name="help_bad_packets">4. Invalid packets appear in the Invalid packets card. Listening continues.</string>
     <string name="bluetooth_permission_title">Bluetooth permission needed</string>
     <string name="bluetooth_permission_description">Android 12 and later require Nearby devices permission to scan and connect. Android 11 and earlier require location permission for BLE scanning. Notification permission is also requested for the overlay service; denying it does not block the main screen.</string>
@@ -75,7 +75,7 @@
     <string name="status_scanning">Scanning nearby BLE devices…</string>
     <string name="status_connecting">Connecting to %1$s…</string>
     <string name="status_disconnected">Disconnected</string>
-    <string name="status_subscribed">Subscribed; waiting for readings (your device may stop sending them when not worn)</string>
+    <string name="status_subscribed">Subscribed; waiting for heart rate readings</string>
     <string name="status_startup_reconnect_failed">Couldn’t reach the last device. Tap Scan BLE to reconnect.</string>
     <string name="status_reconnect">%1$s. You can reconnect.</string>
     <string name="phase_reconnecting">Reconnecting</string>
@@ -90,7 +90,7 @@
         <item quantity="other">%1$d seconds</item>
     </plurals>
     <string name="status_no_contact">No skin contact; heart rate may be invalid</string>
-    <string name="status_zero_bpm">Received 0 BPM (not worn / no pulse)</string>
+    <string name="status_zero_bpm">Received 0 BPM (no pulse detected)</string>
     <string name="status_warnings">Receiving · Warnings: %1$d</string>
     <string name="status_receiving">Receiving</string>
     <string name="scan_finished">Scan complete</string>
