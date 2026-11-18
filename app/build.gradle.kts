@@ -1,4 +1,5 @@
 import com.android.build.api.artifact.SingleArtifact
+import java.util.Properties
 
 plugins {
     id("com.android.application")
@@ -6,6 +7,12 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
 }
+
+val releaseSigningProperties = providers
+    .fileContents(rootProject.layout.projectDirectory.file("keystore.properties"))
+    .asText.orNull?.let { contents ->
+        Properties().apply { load(contents.removePrefix("\uFEFF").reader()) }
+    }
 
 android {
     namespace = "com.example.blehr"
@@ -20,8 +27,25 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    val releaseSigning = releaseSigningProperties?.let { properties ->
+        fun required(name: String, default: String?): String = properties.getProperty(name)
+            ?.takeIf { it.isNotBlank() }
+            ?: default
+            ?: throw GradleException("Missing '$name' in keystore.properties.")
+
+        fun required(name: String): String = required(name, null)
+
+        signingConfigs.create("release") {
+            storeFile = rootProject.file(required("storeFile"))
+            storePassword = required("storePassword")
+            keyAlias = required("keyAlias")
+            keyPassword = required("keyPassword", required("storePassword"))
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = releaseSigning
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

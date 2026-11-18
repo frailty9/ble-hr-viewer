@@ -146,9 +146,20 @@ Windows 使用以下命令；Linux / macOS 将 `.\gradlew.bat` 替换为 `./grad
 
 - 发布前核对 `app/build.gradle.kts` 中的 `versionCode`、`versionName` 和本文件的版本信息。
 - Debug APK 用于本地测试，导出为 `ble-hr-viewer-0.4.4-SNAPSHOT-debug.apk`。
-- 当前未配置 release 签名，`assembleRelease` 导出的是 `ble-hr-viewer-0.4.4-SNAPSHOT-unsigned.apk`；正式分发前需使用维护者自己的签名密钥生成签名 APK，签名后的正式包命名为 `ble-hr-viewer-0.4.4-SNAPSHOT.apk`。
-- 签名密钥、密码和本机配置不入库。安装包及其 SHA-256 校验值作为发布附件提供，构建产物不提交到 Git。
+- 安装包及其 SHA-256 校验值作为发布附件提供，构建产物不提交到 Git。
 - 在真机上检查设备扫描、心率订阅、断开连接，以及悬浮窗的授权、后台显示、拖动和长按关闭。
+
+### 配置 Release 签名
+
+将根目录的 [`keystore.properties.example`](keystore.properties.example) 复制为 `keystore.properties`，以 UTF-8 保存。填入 `storeFile`（密钥库路径）、`storePassword`（密钥库密码）、`keyAlias`（密钥别名）和 `keyPassword`（密钥密码，省略时使用 `storePassword`）。相对路径以项目根目录为准。Windows 路径可写成 `D:/Keys/ble-hr-viewer-release.jks`，文件内容中的字面反斜杠要写成 `\\`。
+
+配置完成后执行 `.\gradlew.bat :app:assembleRelease`，签名 APK 会导出为 `dist/ble-hr-viewer-0.4.4-SNAPSHOT.apk`。如果没有 `keystore.properties`，该命令仍可构建，导出的文件带有 `-unsigned.apk` 后缀。使用 Android SDK Build Tools 中的 `apksigner` 验证签名并查看证书指纹：
+
+```powershell
+apksigner verify --print-certs dist/ble-hr-viewer-0.4.4-SNAPSHOT.apk
+```
+
+`keystore.properties` 和密钥库只保存在本机。Git 已忽略该配置文件以及 `.jks`、`.keystore` 等常用密钥库格式。
 
 ## 权限与数据
 
