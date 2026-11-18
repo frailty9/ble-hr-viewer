@@ -1,5 +1,6 @@
 package io.github.frailty9.blehr.feature.settings
 
+import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
@@ -24,6 +25,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setFontAlpha(alpha: Float) = repository.setFontAlpha(alpha)
     fun resetAppearance() = repository.reset()
 
+    // Lint misreads the Class reference in the Intent constructor as a SAM conversion.
+    @SuppressLint("ImplicitSamInstance")
     fun withdrawConsent() {
         val context = getApplication<Application>()
         PrivacyConsentStore.withdraw(context)
