@@ -44,8 +44,6 @@
 
 页面圆角会参考设备屏幕圆角：Android 12 及以上取系统提供的最大半径，换算为 dp 后减去 14dp 页面边距，并限制在 12–28dp；无有效数据、旧系统及多窗口模式使用 20dp。卡片、设备行、按钮、状态标签和三段控件采用同一套比例层级，悬浮窗样式独立。主页保留左右留白，移除上下额外留白及滚动视窗的圆角裁切，内容可滚至屏幕底边；列表末尾预留系统导航安全区，横屏两列分别滚动。
 
-当前 `0.4.3-SNAPSHOT` 用于真机观感验收，暂未合并到 main。
-
 ## 使用
 
 1. 在手环或其配套应用中开启心率广播。
@@ -72,7 +70,7 @@
 | Navigation Compose | 2.8.9 |
 | Lifecycle | 2.8.3 |
 | Android SDK | compileSdk / targetSdk 35，minSdk 26 |
-| 应用版本 | 0.4.3-SNAPSHOT（versionCode 17） |
+| 应用版本 | 0.4.3（versionCode 18） |
 
 使用 Android Studio 打开项目并配置 Android SDK，或在本机的 `local.properties` 中设置 `sdk.dir`。该文件不提交到 Git。
 
@@ -80,14 +78,14 @@ Windows：
 
 ```powershell
 .\gradlew.bat :app:assembleDebug
-adb install -r dist\ble-hr-viewer-0.4.3-SNAPSHOT-debug.apk
+adb install -r dist\ble-hr-viewer-0.4.3-debug.apk
 ```
 
 Linux / macOS：
 
 ```sh
 ./gradlew :app:assembleDebug
-adb install -r dist/ble-hr-viewer-0.4.3-SNAPSHOT-debug.apk
+adb install -r dist/ble-hr-viewer-0.4.3-debug.apk
 ```
 
 构建完成后会自动将带产品名和版本号的 APK 导出到 `dist/`，版本号取自构建配置。
@@ -145,8 +143,8 @@ Windows 使用以下命令；Linux / macOS 将 `.\gradlew.bat` 替换为 `./grad
 ```
 
 - 发布前核对 `app/build.gradle.kts` 中的 `versionCode`、`versionName` 和本文件的版本信息。
-- Debug APK 用于本地测试，导出为 `ble-hr-viewer-0.4.3-SNAPSHOT-debug.apk`。
-- 当前未配置 release 签名，`assembleRelease` 导出的是 `ble-hr-viewer-0.4.3-SNAPSHOT-unsigned.apk`；正式分发前需使用维护者自己的签名密钥生成签名 APK，签名后的正式包命名为 `ble-hr-viewer-0.4.3-SNAPSHOT.apk`。
+- Debug APK 用于本地测试，导出为 `ble-hr-viewer-0.4.3-debug.apk`。
+- 当前未配置 release 签名，`assembleRelease` 导出的是 `ble-hr-viewer-0.4.3-unsigned.apk`；正式分发前需使用维护者自己的签名密钥生成签名 APK，签名后的正式包命名为 `ble-hr-viewer-0.4.3.apk`。
 - 签名密钥、密码和本机配置不入库。安装包及其 SHA-256 校验值作为发布附件提供，构建产物不提交到 Git。
 - 在真机上检查设备扫描、心率订阅、断开连接，以及悬浮窗的授权、后台显示、拖动和长按关闭。
 
