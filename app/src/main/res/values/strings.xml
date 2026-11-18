@@ -48,10 +48,9 @@
     <string name="help_standard_service">2. This app receives the standard GATT heart rate service: 0x180D / 0x2A37.</string>
     <string name="help_no_contact">3. Without skin contact, the device may report 0 BPM or no contact, or stop sending readings.</string>
     <string name="help_bad_packets">4. Invalid packets appear in the Invalid packets card. Listening continues.</string>
-    <string name="bluetooth_permission_title">Bluetooth permission needed</string>
-    <string name="bluetooth_permission_description">Android 12 and later require Nearby devices permission to scan and connect. Android 11 and earlier require location permission for BLE scanning. The app asks only after you tap Grant permission. Notification permission is requested separately when you enable the floating overlay.</string>
-    <string name="grant_permission">Grant permission</string>
     <string name="open_app_settings">App settings</string>
+    <string name="scan_permission_settings_hint">Allow the permissions needed for Bluetooth scanning in app settings, then tap Scan BLE again.</string>
+    <string name="overlay_scan_permission_required">Tap Scan BLE and grant Bluetooth permission before opening the overlay.</string>
     <string name="overlay_permission_denied">Permission to display over other apps was not granted</string>
     <string name="overlay_gestures">Overlay enabled: drag to move, long-press to close</string>
     <string name="overlay_service_failed">Unable to start the overlay service: %1$s</string>

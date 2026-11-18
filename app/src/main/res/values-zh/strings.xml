@@ -47,10 +47,9 @@
     <string name="help_standard_service">2. 本 App 只接收标准 GATT 心率服务 0x180D / 0x2A37。</string>
     <string name="help_no_contact">3. 未检测到皮肤接触时，设备可能报告 0 BPM、接触状态“未检测”，或停止发送数据。</string>
     <string name="help_bad_packets">4. 错误包会显示在“错误包”卡片中，不会中断监听。</string>
-    <string name="bluetooth_permission_title">需要蓝牙权限</string>
-    <string name="bluetooth_permission_description">Android 12 及以上需要“附近的设备”权限才能扫描并连接心率设备。Android 11 及以下使用定位权限进行 BLE 扫描。应用只会在你点击“授予权限”后请求。通知权限会在开启悬浮窗时单独请求。</string>
-    <string name="grant_permission">授予权限</string>
     <string name="open_app_settings">打开应用设置</string>
+    <string name="scan_permission_settings_hint">请在应用设置中允许蓝牙扫描所需的权限，然后返回并再次点击“扫描 BLE”。</string>
+    <string name="overlay_scan_permission_required">请先点击“扫描 BLE”并授予蓝牙权限，再开启悬浮窗。</string>
     <string name="overlay_permission_denied">未授予悬浮窗权限</string>
     <string name="overlay_gestures">悬浮窗已开启：拖动移动，长按关闭</string>
     <string name="overlay_service_failed">无法启动悬浮窗服务：%1$s</string>
