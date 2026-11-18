@@ -21,6 +21,7 @@ import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
 import androidx.annotation.RequiresApi
+import io.github.frailty9.blehr.BuildConfig
 import io.github.frailty9.blehr.R
 import io.github.frailty9.blehr.core.text.asUiText
 import io.github.frailty9.blehr.core.text.uiText
@@ -144,7 +145,7 @@ class BleHeartRateClient(
             rssi = result.rssi,
             hasHeartRateService = hasHr,
         )
-        if (scanResults.size == 1) {
+        if (scanResults.size == 1 && BuildConfig.DEBUG) {
             Log.d(TAG, "first scan result: $address name=$name hr=$hasHr")
         }
     }
@@ -158,7 +159,7 @@ class BleHeartRateClient(
     private fun emitScanSnapshot() {
         if (scanResults.isEmpty()) return
         val snapshot = scanResults.values.toList()
-        Log.d(TAG, "scan snapshot: ${snapshot.size} devices")
+        if (BuildConfig.DEBUG) Log.d(TAG, "scan snapshot: ${snapshot.size} devices")
         onEvent(BleEvent.ScanResults(snapshot))
     }
 
@@ -170,7 +171,7 @@ class BleHeartRateClient(
         ) {
             if (gatt !== this@BleHeartRateClient.gatt) return
             if (newState == BluetoothProfile.STATE_CONNECTED) {
-                Log.d(TAG, "GATT connected, discovering services")
+                if (BuildConfig.DEBUG) Log.d(TAG, "GATT connected, discovering services")
                 if (!gatt.discoverServices()) {
                     onEvent(BleEvent.Error(uiText(R.string.discover_services_failed)))
                     closeGatt()
@@ -307,7 +308,7 @@ class BleHeartRateClient(
         try {
             leScanner.startScan(null, settings, scanCallback)
             handler.postDelayed(scanTimeout, SCAN_TIMEOUT_MS)
-            Log.d(TAG, "BLE scan started (mode=$SCAN_MODE, 500ms UI batches)")
+            if (BuildConfig.DEBUG) Log.d(TAG, "BLE scan started (mode=$SCAN_MODE, 500ms UI batches)")
         } catch (exc: SecurityException) {
             scanner = false
             onEvent(BleEvent.ScanFailed(uiText(R.string.scan_permission_missing)))
@@ -427,7 +428,7 @@ class BleHeartRateClient(
             gatt.device.addressType
         } else null
         onEvent(BleEvent.Connected(name, address, services, addressType, gatt.device))
-        Log.d(TAG, "Subscribed to 0x2A37 on $address")
+        if (BuildConfig.DEBUG) Log.d(TAG, "Subscribed to 0x2A37 on $address")
     }
 
     private fun handleNotification(
@@ -437,10 +438,10 @@ class BleHeartRateClient(
         if (!connectedEmitted || characteristic.uuid != HR_MEASUREMENT_UUID) return
         try {
             val sample = HeartRateParser.parse(value)
-            Log.d(TAG, "HR ${sample.bpm} bpm raw=${sample.rawHex}")
+            if (BuildConfig.DEBUG) Log.d(TAG, "HR ${sample.bpm} bpm raw=${sample.rawHex}")
             onEvent(BleEvent.Notification(sample))
         } catch (exc: HeartRateParseException) {
-            Log.w(TAG, "Bad HR packet: ${exc.reason} raw=${HeartRateParser.hex(exc.raw)}")
+            if (BuildConfig.DEBUG) Log.w(TAG, "Bad HR packet: ${exc.reason} raw=${HeartRateParser.hex(exc.raw)}")
             onEvent(BleEvent.BadPacket(exc.reason.asUiText(), HeartRateParser.hex(exc.raw)))
         } catch (exc: Exception) {
             Log.w(TAG, "HR packet parse failure", exc)
