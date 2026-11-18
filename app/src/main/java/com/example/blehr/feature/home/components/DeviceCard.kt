@@ -35,6 +35,7 @@ import com.example.blehr.data.heartrate.ConnectionPhase
 import com.example.blehr.data.heartrate.HeartRateState
 import com.example.blehr.ui.components.StatusChip
 import com.example.blehr.ui.theme.Accent
+import com.example.blehr.ui.theme.ErrorRed
 import com.example.blehr.ui.theme.Ink
 import com.example.blehr.ui.theme.LocalAppShapes
 import com.example.blehr.ui.theme.Muted
@@ -80,7 +81,8 @@ internal fun DeviceCard(
                     Text(if (state.scanning) stringResource(R.string.stop_scan) else stringResource(R.string.scan_ble))
                 }
                 if (state.connection == ConnectionPhase.CONNECTED ||
-                    state.connection == ConnectionPhase.CONNECTING
+                    state.connection == ConnectionPhase.CONNECTING ||
+                    state.connection == ConnectionPhase.RECONNECTING
                 ) {
                     OutlinedButton(onClick = onDisconnect, shape = LocalAppShapes.current.button) {
                         Text(stringResource(R.string.disconnect))
@@ -89,6 +91,9 @@ internal fun DeviceCard(
             }
             TextButton(onClick = openBluetoothSettings, shape = LocalAppShapes.current.button) {
                 Text(stringResource(R.string.open_bluetooth_settings))
+            }
+            state.scanError?.let {
+                Text(it.asString(), style = MaterialTheme.typography.bodySmall, color = ErrorRed)
             }
             if (state.scanning) {
                 Spacer(Modifier.height(6.dp))

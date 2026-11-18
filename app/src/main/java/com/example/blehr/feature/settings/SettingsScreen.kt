@@ -25,7 +25,9 @@ import androidx.compose.ui.unit.dp
 import com.example.blehr.R
 import com.example.blehr.data.settings.AppLanguage
 import com.example.blehr.data.settings.AppTheme
+import com.example.blehr.data.settings.DEFAULT_HEART_RATE_TIMEOUT_SECONDS
 import com.example.blehr.data.settings.OverlayAppearance
+import com.example.blehr.feature.settings.components.BluetoothConnectionSettings
 import com.example.blehr.feature.settings.components.LanguageSelector
 import com.example.blehr.feature.settings.components.OverlayAppearanceCard
 import com.example.blehr.feature.settings.components.ThemeSelector
@@ -44,6 +46,8 @@ fun SettingsScreen(
     onResetAppearance: () -> Unit,
     theme: AppTheme = AppTheme.SYSTEM,
     onThemeSelected: (AppTheme) -> Unit = {},
+    heartRateTimeoutSeconds: Int = DEFAULT_HEART_RATE_TIMEOUT_SECONDS,
+    onHeartRateTimeoutChanged: (Int) -> Unit = {},
 ) {
     Box(Modifier.fillMaxSize().testTag("settings_screen")) {
         Column(
@@ -74,6 +78,7 @@ fun SettingsScreen(
                 appearance, onBackgroundColorChanged, onBackgroundAlphaChanged,
                 onFontColorChanged, onFontAlphaChanged, onResetAppearance,
             )
+            BluetoothConnectionSettings(heartRateTimeoutSeconds, onHeartRateTimeoutChanged)
         }
     }
 }

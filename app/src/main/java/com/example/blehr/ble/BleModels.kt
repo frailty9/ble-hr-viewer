@@ -21,6 +21,7 @@ sealed interface BleEvent {
         val address: String,
         val services: List<String>,
         val addressType: Int?,
+        val device: BluetoothDevice,
     ) : BleEvent
     data class Disconnected(val message: UiText) : BleEvent
     data class Notification(val sample: HeartRateSample) : BleEvent

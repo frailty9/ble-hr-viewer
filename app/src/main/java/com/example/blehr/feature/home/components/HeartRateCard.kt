@@ -70,6 +70,7 @@ internal fun BpmCard(state: HeartRateState) {
         state.connection == ConnectionPhase.CONNECTED ->
             "${state.connectedName ?: stringResource(R.string.unknown_device)} · ${state.connectedAddress ?: "--"}"
         state.connection == ConnectionPhase.CONNECTING -> stringResource(R.string.device_connecting)
+        state.connection == ConnectionPhase.RECONNECTING -> state.connectedName ?: state.connectedAddress.orEmpty()
         state.connection == ConnectionPhase.SCANNING -> stringResource(R.string.device_scanning)
         state.connection == ConnectionPhase.ERROR -> stringResource(R.string.device_connection_error)
         else -> stringResource(R.string.device_not_connected)

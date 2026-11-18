@@ -35,6 +35,7 @@ internal fun AppHeader(state: HeartRateState, onOpenSettings: () -> Unit) {
         ConnectionPhase.SCANNING -> stringResource(R.string.phase_scanning) to WarnAmber
         ConnectionPhase.CONNECTING -> stringResource(R.string.phase_connecting) to WarnAmber
         ConnectionPhase.CONNECTED -> stringResource(R.string.phase_connected) to OkGreen
+        ConnectionPhase.RECONNECTING -> stringResource(R.string.phase_reconnecting) to WarnAmber
         ConnectionPhase.DISCONNECTED -> stringResource(R.string.phase_disconnected) to Muted
         ConnectionPhase.ERROR -> stringResource(R.string.phase_error) to ErrorRed
         ConnectionPhase.IDLE -> stringResource(R.string.phase_idle) to Muted

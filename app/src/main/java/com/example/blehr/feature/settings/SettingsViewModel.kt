@@ -9,8 +9,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val repository = SettingsRepository.get(application)
     val appearance = repository.appearance
     val theme = repository.theme
+    val heartRateTimeoutSeconds = repository.heartRateTimeoutSeconds
 
     fun setTheme(theme: AppTheme) = repository.setTheme(theme)
+    fun setHeartRateTimeoutSeconds(seconds: Int) = repository.setHeartRateTimeoutSeconds(seconds)
 
     fun setBackgroundColor(color: Int) = repository.setBackgroundColor(color)
     fun setBackgroundAlpha(alpha: Float) = repository.setBackgroundAlpha(alpha)

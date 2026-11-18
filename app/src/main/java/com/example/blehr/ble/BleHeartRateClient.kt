@@ -1,5 +1,6 @@
 package com.example.blehr.ble
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
@@ -13,6 +14,7 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -44,7 +46,7 @@ class BleHeartRateClient(
         const val SCAN_TIMEOUT_MS = 12_000L
         const val SCAN_BATCH_MS = 500L
         const val CONNECT_TIMEOUT_MS = 20_000L
-        private const val STARTUP_CONNECT_TIMEOUT_MS = 10_000L
+        private const val DIRECT_CONNECT_TIMEOUT_MS = 10_000L
 
         // LOW_LATENCY is the known-good discovery mode. UI updates are batched below.
         private const val SCAN_MODE = ScanSettings.SCAN_MODE_LOW_LATENCY
@@ -83,12 +85,21 @@ class BleHeartRateClient(
 
     private val connectTimeout = Runnable {
         if (gatt != null && !connectedEmitted) {
-            onEvent(BleEvent.Error(uiText(R.string.connection_timeout)))
             closeGatt()
+            onEvent(BleEvent.Error(uiText(R.string.connection_timeout)))
         }
     }
 
-    val isScanning: Boolean get() = scanner
+    internal fun canConnect(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            appContext.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
+        ) return false
+        return try {
+            adapter?.isEnabled == true
+        } catch (_: SecurityException) {
+            false
+        }
+    }
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -170,8 +181,8 @@ class BleHeartRateClient(
                 } else {
                     uiText(R.string.connection_lost_status, status)
                 }
-                onEvent(BleEvent.Disconnected(message))
                 closeGatt()
+                onEvent(BleEvent.Disconnected(message))
             }
         }
 
@@ -269,16 +280,21 @@ class BleHeartRateClient(
         if (scanner) return
         val adapter = adapter
         if (adapter == null) {
-            onEvent(BleEvent.Error(uiText(R.string.bluetooth_unsupported)))
+            onEvent(BleEvent.ScanFailed(uiText(R.string.bluetooth_unsupported)))
             return
         }
-        if (!adapter.isEnabled) {
-            onEvent(BleEvent.Error(uiText(R.string.bluetooth_disabled)))
+        val leScanner = try {
+            if (!adapter.isEnabled) {
+                onEvent(BleEvent.ScanFailed(uiText(R.string.bluetooth_disabled)))
+                return
+            }
+            adapter.bluetoothLeScanner
+        } catch (_: SecurityException) {
+            onEvent(BleEvent.ScanFailed(uiText(R.string.scan_permission_missing)))
             return
         }
-        val leScanner = adapter.bluetoothLeScanner
         if (leScanner == null) {
-            onEvent(BleEvent.Error(uiText(R.string.scanner_unavailable)))
+            onEvent(BleEvent.ScanFailed(uiText(R.string.scanner_unavailable)))
             return
         }
         val settings = ScanSettings.Builder()
@@ -294,10 +310,10 @@ class BleHeartRateClient(
             Log.d(TAG, "BLE scan started (mode=$SCAN_MODE, 500ms UI batches)")
         } catch (exc: SecurityException) {
             scanner = false
-            onEvent(BleEvent.Error(uiText(R.string.scan_permission_missing)))
+            onEvent(BleEvent.ScanFailed(uiText(R.string.scan_permission_missing)))
         } catch (exc: Exception) {
             scanner = false
-            onEvent(BleEvent.Error(uiText(R.string.scan_start_failed, exc.message ?: uiText(R.string.unknown_error))))
+            onEvent(BleEvent.ScanFailed(uiText(R.string.scan_start_failed, exc.message ?: uiText(R.string.unknown_error))))
         }
     }
 
@@ -325,6 +341,12 @@ class BleHeartRateClient(
         connect(scanned.device, scanned.name, CONNECT_TIMEOUT_MS)
     }
 
+    internal fun reconnect(device: BluetoothDevice, name: String?): Boolean {
+        if (!canConnect()) return false
+        connect(device, name, DIRECT_CONNECT_TIMEOUT_MS)
+        return true
+    }
+
     internal fun connectRecent(address: String, name: String?, addressType: Int?): Boolean {
         val device = try {
             val activeAdapter = adapter?.takeIf { it.isEnabled } ?: return false
@@ -340,8 +362,7 @@ class BleHeartRateClient(
         } catch (_: IllegalArgumentException) {
             return false
         }
-        connect(device, name, STARTUP_CONNECT_TIMEOUT_MS)
-        return true
+        return reconnect(device, name)
     }
 
     private fun connect(device: BluetoothDevice, name: String?, timeoutMs: Long) {
@@ -405,7 +426,7 @@ class BleHeartRateClient(
         val addressType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
             gatt.device.addressType
         } else null
-        onEvent(BleEvent.Connected(name, address, services, addressType))
+        onEvent(BleEvent.Connected(name, address, services, addressType, gatt.device))
         Log.d(TAG, "Subscribed to 0x2A37 on $address")
     }
 
@@ -413,7 +434,7 @@ class BleHeartRateClient(
         characteristic: BluetoothGattCharacteristic,
         value: ByteArray,
     ) {
-        if (characteristic.uuid != HR_MEASUREMENT_UUID) return
+        if (!connectedEmitted || characteristic.uuid != HR_MEASUREMENT_UUID) return
         try {
             val sample = HeartRateParser.parse(value)
             Log.d(TAG, "HR ${sample.bpm} bpm raw=${sample.rawHex}")
@@ -444,6 +465,7 @@ class BleHeartRateClient(
         handler.removeCallbacks(connectTimeout)
         val current = gatt
         gatt = null
+        connectedEmitted = false
         if (current != null) {
             try {
                 current.disconnect()

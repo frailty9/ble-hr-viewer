@@ -49,6 +49,7 @@ class SettingsExperienceTest {
     private lateinit var originalAppearance: OverlayAppearance
     private lateinit var originalLanguage: AppLanguage
     private lateinit var originalTheme: AppTheme
+    private var originalTimeoutSeconds = 5
 
     @Before
     fun launchActualActivity() {
@@ -57,6 +58,7 @@ class SettingsExperienceTest {
         repository = SettingsRepository.get(context)
         originalAppearance = repository.appearance.value
         originalTheme = repository.theme.value
+        originalTimeoutSeconds = repository.heartRateTimeoutSeconds.value
         originalLanguage = LanguageSettings.selected(context)
         val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             listOf("android.permission.BLUETOOTH_SCAN", "android.permission.BLUETOOTH_CONNECT")
@@ -82,6 +84,7 @@ class SettingsExperienceTest {
         if (::activity.isInitialized) compose.runOnUiThread {
             LanguageSettings.apply(activity, originalLanguage)
             repository.setTheme(originalTheme)
+            repository.setHeartRateTimeoutSeconds(originalTimeoutSeconds)
             repository.setBackgroundColor(originalAppearance.backgroundColor)
             repository.setBackgroundAlpha(originalAppearance.backgroundAlpha)
             repository.setFontColor(originalAppearance.fontColor)
@@ -93,6 +96,22 @@ class SettingsExperienceTest {
     private fun openSettings() {
         compose.onNodeWithContentDescription(activity.getString(R.string.settings_title)).performClick()
         compose.onNodeWithTag("settings_screen").assertIsDisplayed()
+    }
+
+    @Test
+    fun timeoutSliderPersistsWholeSecondsAndIsIndependentOfOverlayReset() {
+        openSettings()
+        val slider = compose.onNodeWithContentDescription(activity.getString(R.string.heart_rate_timeout_title))
+        slider.performScrollTo().performSemanticsAction(SemanticsActions.SetProgress) { it(30f) }
+        compose.runOnIdle { assertEquals(30, repository.heartRateTimeoutSeconds.value) }
+        slider.performSemanticsAction(SemanticsActions.SetProgress) { it(3f) }
+        compose.runOnIdle {
+            assertEquals(3, repository.heartRateTimeoutSeconds.value)
+            assertEquals(3, activity.getSharedPreferences("overlay_appearance", 0)
+                .getInt("heart_rate_timeout_seconds", -1))
+        }
+        compose.onNodeWithText(activity.getString(R.string.reset_defaults)).performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(3, repository.heartRateTimeoutSeconds.value) }
     }
 
     @Test

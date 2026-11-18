@@ -28,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.blehr.R
+import com.example.blehr.data.heartrate.ConnectionPhase
 import com.example.blehr.data.heartrate.HeartRateState
 import com.example.blehr.ui.theme.Accent
 import com.example.blehr.ui.theme.GridLine
@@ -68,7 +69,13 @@ internal fun TrendCard(state: HeartRateState) {
                 Sparkline(history, Modifier.fillMaxSize())
                 if (history.size < 2) {
                     Text(
-                        text = stringResource(R.string.trend_waiting),
+                        text = stringResource(
+                            if (state.connection == ConnectionPhase.CONNECTED) {
+                                R.string.trend_waiting
+                            } else {
+                                R.string.trend_no_live_data
+                            },
+                        ),
                         modifier = Modifier.align(Alignment.Center),
                         style = MaterialTheme.typography.bodySmall,
                         color = Muted,
