@@ -44,7 +44,10 @@ fun HomeRoute(viewModel: HomeViewModel, onOpenSettings: () -> Unit) {
     var overlayGranted by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
-    ) { granted = hasBlePermissions(context, blePermissions) }
+    ) {
+        granted = hasBlePermissions(context, blePermissions)
+        if (granted) HeartRateOverlayService.restoreIfEnabled(context)
+    }
     val overlayPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) {

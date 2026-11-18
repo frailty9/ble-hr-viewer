@@ -1,6 +1,8 @@
 package com.example.blehr.feature.settings
 
+import android.app.NotificationManager
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,9 +33,12 @@ import com.example.blehr.data.settings.LanguageSettings
 import com.example.blehr.data.settings.OverlayAppearance
 import com.example.blehr.data.settings.SettingsRepository
 import com.example.blehr.feature.settings.components.LanguageSelector
+import com.example.blehr.overlay.HeartRateOverlayService
 import com.example.blehr.ui.theme.BleHrTheme
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assume.assumeTrue
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -224,6 +229,35 @@ class SettingsExperienceTest {
             }
         } finally {
             shell("cmd uimode night $originalNightMode")
+        }
+    }
+
+    @Test
+    fun notificationCloseClearsSavedOverlayState() {
+        assumeTrue("Overlay permission is needed on the test device", Settings.canDrawOverlays(activity))
+        val wasEnabled = repository.isOverlayEnabled
+        val notifications = activity.getSystemService(NotificationManager::class.java)
+        try {
+            compose.runOnUiThread { HeartRateOverlayService.show(activity) }
+            compose.waitUntil(10_000) {
+                repository.isOverlayEnabled && notifications.activeNotifications.any { it.id == 0x4852 }
+            }
+            val close = notifications.activeNotifications.single { it.id == 0x4852 }.notification.actions.single()
+            close.actionIntent.send()
+            compose.waitUntil(10_000) {
+                !repository.isOverlayEnabled && notifications.activeNotifications.none { it.id == 0x4852 }
+            }
+            compose.runOnUiThread { HeartRateOverlayService.restoreIfEnabled(activity) }
+            compose.runOnIdle { assertFalse(repository.isOverlayEnabled) }
+        } finally {
+            compose.runOnUiThread {
+                repository.setOverlayEnabled(wasEnabled)
+                if (wasEnabled) {
+                    HeartRateOverlayService.restoreIfEnabled(activity)
+                } else {
+                    activity.stopService(android.content.Intent(activity, HeartRateOverlayService::class.java))
+                }
+            }
         }
     }
 

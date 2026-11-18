@@ -10,6 +10,7 @@ class SettingsRepository private constructor(context: Context) {
 
     companion object {
         private const val PREFS = "overlay_appearance"
+        private const val KEY_OVERLAY_ENABLED = "overlay_enabled"
         private const val KEY_BG_COLOR = "bg_color"
         private const val KEY_BG_ALPHA = "bg_alpha"
         private const val KEY_FONT_COLOR = "font_color"
@@ -51,6 +52,13 @@ class SettingsRepository private constructor(context: Context) {
     fun setTheme(theme: AppTheme) {
         _theme.value = theme
         prefs.edit { putString(KEY_THEME, theme.key) }
+    }
+
+    val isOverlayEnabled: Boolean
+        get() = prefs.getBoolean(KEY_OVERLAY_ENABLED, false)
+
+    fun setOverlayEnabled(enabled: Boolean) {
+        if (isOverlayEnabled != enabled) prefs.edit { putBoolean(KEY_OVERLAY_ENABLED, enabled) }
     }
 
     fun setBackgroundColor(color: Int) =
