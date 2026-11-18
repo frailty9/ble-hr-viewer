@@ -56,6 +56,7 @@ fun HomeRoute(viewModel: HomeViewModel, onOpenSettings: () -> Unit) {
         ActivityResultContracts.StartActivityForResult(),
     ) {
         if (overlayPending && Settings.canDrawOverlays(context)) {
+            requestNotificationPermission()
             HeartRateOverlayService.show(context)
         } else if (overlayPending) {
             Toast.makeText(context, R.string.overlay_permission_denied, Toast.LENGTH_SHORT).show()
@@ -99,7 +100,6 @@ fun HomeRoute(viewModel: HomeViewModel, onOpenSettings: () -> Unit) {
                         HeartRateOverlayService.show(context)
                     }
                     !overlayPending -> {
-                        requestNotificationPermission()
                         overlayPending = true
                         overlayPermissionLauncher.launch(
                             Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:${context.packageName}".toUri()),
