@@ -17,6 +17,7 @@ import android.os.IBinder
 import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
+import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.annotation.StringRes
@@ -32,6 +33,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class HeartRateOverlayService : Service() {
@@ -44,7 +47,17 @@ class HeartRateOverlayService : Service() {
         private const val ACTION_RESTORE = "com.example.blehr.action.RESTORE_OVERLAY"
         private const val ACTION_HIDE = "com.example.blehr.action.HIDE_OVERLAY"
 
+        private val _isVisible = MutableStateFlow(false)
+        internal val isVisible = _isVisible.asStateFlow()
+
         fun show(context: Context) = start(context, ACTION_SHOW)
+
+        internal fun hide(context: Context) {
+            context.startService(hideIntent(context))
+        }
+
+        private fun hideIntent(context: Context) =
+            Intent(context, HeartRateOverlayService::class.java).setAction(ACTION_HIDE)
 
         fun restoreIfEnabled(context: Context) {
             if (!SettingsRepository.get(context).isOverlayEnabled || !Settings.canDrawOverlays(context)) return
@@ -200,10 +213,23 @@ class HeartRateOverlayService : Service() {
             y = view.initialTopPx
             title = "BleHrOverlay"
         }
+        view.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(attachedView: View) {
+                if (overlay === attachedView) _isVisible.value = true
+            }
+
+            override fun onViewDetachedFromWindow(detachedView: View) {
+                if (overlay !== detachedView) return
+                overlay = null
+                params = null
+                _isVisible.value = false
+                stopSelf()
+            }
+        })
+        overlay = view
+        params = layout
         try {
             windowManager.addView(view, layout)
-            overlay = view
-            params = layout
             view.bindAppearance(settings.appearance.value)
             view.bindState(repository.ui.value)
             if (!restoring) {
@@ -244,6 +270,7 @@ class HeartRateOverlayService : Service() {
         val view = overlay ?: return
         overlay = null
         params = null
+        _isVisible.value = false
         try {
             windowManager.removeView(view)
         } catch (exc: IllegalArgumentException) {
@@ -275,7 +302,7 @@ class HeartRateOverlayService : Service() {
         val closeIntent = PendingIntent.getService(
             this,
             1,
-            Intent(this, HeartRateOverlayService::class.java).setAction(ACTION_HIDE),
+            hideIntent(this),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)

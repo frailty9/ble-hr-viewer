@@ -34,13 +34,7 @@
     <string name="packet_title">Latest raw packet</string>
     <string name="packet_metadata">flags=0x%1$02x · energy=%2$s</string>
     <string name="packet_raw">raw %1$s</string>
-    <string name="overlay_title">Heart rate overlay</string>
-    <string name="permission_granted">Allowed</string>
-    <string name="permission_required">Permission needed</string>
-    <string name="overlay_description">A compact overlay with a static heart and a three-digit BPM field. Requires permission to display over other apps. Drag to move; long-press to close. Taps do nothing to avoid accidental actions while gaming.</string>
-    <string name="overlay_hint" tools:ignore="TypographyDashes">Connect a heart rate device first. The overlay shows -- when no data is available, or 0 when the device reports 0 BPM.</string>
     <string name="overlay_show">Show overlay</string>
-    <string name="overlay_allow_show">Allow and show</string>
     <string name="overlay_appearance">Overlay appearance</string>
     <string name="reset_defaults">Reset</string>
     <string name="background_color">Background color</string>

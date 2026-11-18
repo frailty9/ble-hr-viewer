@@ -31,6 +31,7 @@ import com.example.blehr.overlay.HeartRateOverlayService
 fun HomeRoute(viewModel: HomeViewModel, onOpenSettings: () -> Unit) {
     val context = LocalContext.current
     val state by viewModel.ui.collectAsStateWithLifecycle()
+    val overlayVisible by HeartRateOverlayService.isVisible.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     val blePermissions = remember { requiredBlePermissions() }
     val requestedPermissions = remember {
@@ -41,7 +42,6 @@ fun HomeRoute(viewModel: HomeViewModel, onOpenSettings: () -> Unit) {
     var granted by remember { mutableStateOf(hasBlePermissions(context, blePermissions)) }
     var asked by rememberSaveable { mutableStateOf(false) }
     var overlayPending by rememberSaveable { mutableStateOf(false) }
-    var overlayGranted by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) {
@@ -51,8 +51,7 @@ fun HomeRoute(viewModel: HomeViewModel, onOpenSettings: () -> Unit) {
     val overlayPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) {
-        overlayGranted = Settings.canDrawOverlays(context)
-        if (overlayPending && overlayGranted) {
+        if (overlayPending && Settings.canDrawOverlays(context)) {
             HeartRateOverlayService.show(context)
         } else if (overlayPending) {
             Toast.makeText(context, R.string.overlay_permission_denied, Toast.LENGTH_SHORT).show()
@@ -63,7 +62,6 @@ fun HomeRoute(viewModel: HomeViewModel, onOpenSettings: () -> Unit) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 granted = hasBlePermissions(context, blePermissions)
-                overlayGranted = Settings.canDrawOverlays(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -86,7 +84,7 @@ fun HomeRoute(viewModel: HomeViewModel, onOpenSettings: () -> Unit) {
         }
         HomeScreen(
             state = state,
-            overlayGranted = overlayGranted,
+            overlayVisible = overlayVisible,
             onOpenSettings = onOpenSettings,
             onStartScan = viewModel::startScan,
             onStopScan = viewModel::stopScan,
@@ -95,14 +93,16 @@ fun HomeRoute(viewModel: HomeViewModel, onOpenSettings: () -> Unit) {
             onOpenBluetoothSettings = {
                 context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
             },
-            onShowOverlay = {
-                if (Settings.canDrawOverlays(context)) {
-                    HeartRateOverlayService.show(context)
-                } else {
-                    overlayPending = true
-                    overlayPermissionLauncher.launch(
-                        Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:${context.packageName}".toUri()),
-                    )
+            onToggleOverlay = {
+                when {
+                    HeartRateOverlayService.isVisible.value -> HeartRateOverlayService.hide(context)
+                    Settings.canDrawOverlays(context) -> HeartRateOverlayService.show(context)
+                    !overlayPending -> {
+                        overlayPending = true
+                        overlayPermissionLauncher.launch(
+                            Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:${context.packageName}".toUri()),
+                        )
+                    }
                 }
             },
         )

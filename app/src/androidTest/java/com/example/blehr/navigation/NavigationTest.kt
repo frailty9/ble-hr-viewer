@@ -142,10 +142,10 @@ class NavigationTest {
     private fun HomeContent(openSettings: () -> Unit) {
         HomeScreen(
             state = HeartRateState(),
-            overlayGranted = true,
+            overlayVisible = false,
             onOpenSettings = openSettings,
             onStartScan = {}, onStopScan = {}, onConnect = {}, onDisconnect = {},
-            onOpenBluetoothSettings = {}, onShowOverlay = {},
+            onOpenBluetoothSettings = {}, onToggleOverlay = {},
         )
     }
 

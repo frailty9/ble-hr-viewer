@@ -33,13 +33,7 @@
     <string name="packet_title">最近原始包</string>
     <string name="packet_metadata">标志=0x%1$02x · 能量=%2$s</string>
     <string name="packet_raw">原始数据 %1$s</string>
-    <string name="overlay_title">悬浮窗心率</string>
-    <string name="permission_granted">权限已授予</string>
-    <string name="permission_required">需授权</string>
-    <string name="overlay_description">小型悬浮窗只显示静态心形和 BPM，数值区固定预留三位数字的宽度。需要“显示在其他应用上层”权限；拖动移动，长按关闭；点击不响应，避免游戏误触。</string>
-    <string name="overlay_hint" tools:ignore="TypographyDashes">建议先连接心率设备。没有数据时显示 --，设备报告 0 BPM 时显示 0。</string>
     <string name="overlay_show">开启悬浮窗</string>
-    <string name="overlay_allow_show">授权并开启</string>
     <string name="overlay_appearance">悬浮窗外观</string>
     <string name="reset_defaults">恢复默认</string>
     <string name="background_color">背景颜色</string>

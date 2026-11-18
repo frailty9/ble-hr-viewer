@@ -29,7 +29,6 @@ import com.example.blehr.feature.home.components.BpmCard
 import com.example.blehr.feature.home.components.DeviceCard
 import com.example.blehr.feature.home.components.ErrorCard
 import com.example.blehr.feature.home.components.HelpCard
-import com.example.blehr.feature.home.components.OverlayCard
 import com.example.blehr.feature.home.components.PacketCard
 import com.example.blehr.feature.home.components.TrendCard
 import com.example.blehr.ui.theme.PageMargin
@@ -37,14 +36,14 @@ import com.example.blehr.ui.theme.PageMargin
 @Composable
 fun HomeScreen(
     state: HeartRateState,
-    overlayGranted: Boolean,
+    overlayVisible: Boolean,
     onOpenSettings: () -> Unit,
     onStartScan: () -> Unit,
     onStopScan: () -> Unit,
     onConnect: (ScannedDevice) -> Unit,
     onDisconnect: () -> Unit,
     onOpenBluetoothSettings: () -> Unit,
-    onShowOverlay: () -> Unit,
+    onToggleOverlay: () -> Unit,
 ) {
     // Declare each layout's scroll state outside the orientation branch so it survives rotation.
     val portraitScroll = rememberScrollState()
@@ -76,7 +75,7 @@ fun HomeScreen(
                             .testTag("home_left_scroll")
                             .verticalScroll(landscapeLeftScroll),
                     ) {
-                        BpmCard(state)
+                        BpmCard(state, overlayVisible, onToggleOverlay)
                         Spacer(Modifier.height(10.dp))
                         TrendCard(state)
                         Spacer(Modifier.height(10.dp))
@@ -92,8 +91,6 @@ fun HomeScreen(
                     ) {
                         DeviceCard(state, onStartScan, onStopScan, onConnect, onDisconnect, onOpenBluetoothSettings)
                         Spacer(Modifier.height(10.dp))
-                        OverlayCard(overlayGranted, onShowOverlay)
-                        Spacer(Modifier.height(10.dp))
                         ErrorCard(state)
                         Spacer(Modifier.height(10.dp))
                         HelpCard()
@@ -107,13 +104,11 @@ fun HomeScreen(
                         .testTag("home_scroll")
                         .verticalScroll(portraitScroll),
                 ) {
-                    BpmCard(state)
+                    BpmCard(state, overlayVisible, onToggleOverlay)
                     Spacer(Modifier.height(10.dp))
                     TrendCard(state)
                     Spacer(Modifier.height(10.dp))
                     DeviceCard(state, onStartScan, onStopScan, onConnect, onDisconnect, onOpenBluetoothSettings)
-                    Spacer(Modifier.height(10.dp))
-                    OverlayCard(overlayGranted, onShowOverlay)
                     Spacer(Modifier.height(10.dp))
                     ErrorCard(state)
                     Spacer(Modifier.height(10.dp))
