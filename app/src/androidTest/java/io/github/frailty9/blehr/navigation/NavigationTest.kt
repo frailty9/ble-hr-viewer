@@ -429,7 +429,14 @@ class NavigationTest {
             val link = compose.onNodeWithTag(tag).performScrollTo()
             val scrollBefore = scrollPosition("settings_scroll")
             assertTrue(scrollBefore > 0)
-            link.performClick()
+            val cardBounds = compose.onNodeWithTag("about_card").fetchSemanticsNode().boundsInRoot
+            val rowBounds = link.fetchSemanticsNode().boundsInRoot
+            assertEquals(cardBounds.left, rowBounds.left, 1f)
+            assertEquals(cardBounds.right, rowBounds.right, 1f)
+            link.performTouchInput {
+                val x = if (tag == "about_agreement") 4.dp.toPx() else width - 4.dp.toPx()
+                click(Offset(x, centerY))
+            }
             if (tag == "about_privacy") {
                 compose.onNodeWithTag("legal_screen").assertIsDisplayed()
                 recreateActivity()
