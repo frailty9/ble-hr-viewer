@@ -155,4 +155,10 @@
     <string name="cancel">取消</string>
     <string name="overlay_show_heart">显示心形</string>
     <string name="overlay_show_unit">显示单位</string>
+    <string name="overlay_threshold">心率预警值（BPM）</string>
+    <string name="overlay_threshold_hint">留空并保存可关闭变色。</string>
+    <string name="overlay_threshold_invalid">请输入 1 到 250 的整数。</string>
+    <string name="overlay_threshold_save">保存上限</string>
+    <string name="overlay_preview_normal">预览基础色</string>
+    <string name="overlay_preview_threshold">预览达标颜色</string>
 </resources>

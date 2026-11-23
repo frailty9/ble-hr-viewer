@@ -7,6 +7,8 @@ import androidx.lifecycle.AndroidViewModel
 import io.github.frailty9.blehr.data.heartrate.HeartRateRepository
 import io.github.frailty9.blehr.data.privacy.PrivacyConsentStore
 import io.github.frailty9.blehr.data.settings.AppTheme
+import io.github.frailty9.blehr.data.settings.HeartRateColorRule
+import io.github.frailty9.blehr.data.settings.OverlayWarningRedRgb
 import io.github.frailty9.blehr.data.settings.SettingsRepository
 import io.github.frailty9.blehr.overlay.HeartRateOverlayService
 
@@ -26,6 +28,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setOverlayShowHeart(show: Boolean) = repository.setOverlayShowHeart(show)
 
     fun setOverlayShowUnit(show: Boolean) = repository.setOverlayShowUnit(show)
+
+    fun setOverlayColorThreshold(bpm: Int?) = repository.setHeartRateColorRules(
+        if (bpm == null) emptyList() else listOf(HeartRateColorRule(bpm, OverlayWarningRedRgb)),
+    )
 
     fun resetAppearance() = repository.reset()
 

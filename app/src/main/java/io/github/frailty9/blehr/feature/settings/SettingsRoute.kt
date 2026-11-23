@@ -56,6 +56,7 @@ fun SettingsRoute(
         onResetAppearance = viewModel::resetAppearance,
         onOverlayShowHeartChanged = viewModel::setOverlayShowHeart,
         onOverlayShowUnitChanged = viewModel::setOverlayShowUnit,
+        onOverlayColorThresholdSaved = viewModel::setOverlayColorThreshold,
         versionName = BuildConfig.VERSION_NAME,
         contactEmail = LegalDocuments.CONTACT_EMAIL,
         filingNumber = BuildConfig.APP_FILING_NUMBER,

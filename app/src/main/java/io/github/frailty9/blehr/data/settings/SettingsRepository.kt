@@ -18,6 +18,7 @@ class SettingsRepository private constructor(context: Context) {
         private const val KEY_LEGACY_OVERLAY_LAYOUT = "overlay_layout"
         private const val KEY_OVERLAY_SHOW_HEART = "overlay_show_heart"
         private const val KEY_OVERLAY_SHOW_UNIT = "overlay_show_unit"
+        private const val KEY_COLOR_RULES = "heart_rate_color_rules"
         private const val KEY_THEME = "theme_mode"
         private const val KEY_HEART_RATE_TIMEOUT = "heart_rate_timeout_seconds"
 
@@ -80,6 +81,12 @@ class SettingsRepository private constructor(context: Context) {
 
     fun setOverlayShowUnit(show: Boolean) = commit(_appearance.value.copy(showUnit = show))
 
+    fun setHeartRateColorRules(rules: List<HeartRateColorRule>) {
+        val snapshot = rules.toList()
+        HeartRateColorRules.validate(snapshot)
+        commit(_appearance.value.copy(colorRules = snapshot))
+    }
+
     fun reset() = commit(OverlayAppearance.Default)
 
     private fun commit(value: OverlayAppearance) {
@@ -92,6 +99,7 @@ class SettingsRepository private constructor(context: Context) {
             putBoolean(KEY_OVERLAY_SHOW_HEART, value.showHeart)
             putBoolean(KEY_OVERLAY_SHOW_UNIT, value.showUnit)
             remove(KEY_LEGACY_OVERLAY_LAYOUT)
+            putString(KEY_COLOR_RULES, HeartRateColorRules.encode(value.colorRules))
         }
     }
 
@@ -121,5 +129,8 @@ class SettingsRepository private constructor(context: Context) {
             KEY_OVERLAY_SHOW_UNIT,
             prefs.getString(KEY_LEGACY_OVERLAY_LAYOUT, null) == "large",
         ),
+        // Keep thresholds from earlier builds and apply the fixed warning color.
+        colorRules = HeartRateColorRules.decode(prefs.all[KEY_COLOR_RULES] as? String)
+            .map { it.copy(foregroundRgb = OverlayWarningRedRgb) },
     )
 }

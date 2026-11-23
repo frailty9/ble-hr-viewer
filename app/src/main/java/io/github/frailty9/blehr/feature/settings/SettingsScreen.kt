@@ -65,6 +65,7 @@ fun SettingsScreen(
     onWithdrawConsent: () -> Unit = {},
     onOverlayShowHeartChanged: (Boolean) -> Unit = {},
     onOverlayShowUnitChanged: (Boolean) -> Unit = {},
+    onOverlayColorThresholdSaved: (Int?) -> Unit = {},
 ) {
     Box(
         Modifier.fillMaxSize().testTag("settings_screen")
@@ -105,6 +106,7 @@ fun SettingsScreen(
                     onFontColorChanged, onFontAlphaChanged, onResetAppearance,
                     onShowHeartChanged = onOverlayShowHeartChanged,
                     onShowUnitChanged = onOverlayShowUnitChanged,
+                    onThresholdSaved = onOverlayColorThresholdSaved,
                 )
                 BluetoothConnectionSettings(heartRateTimeoutSeconds, onHeartRateTimeoutChanged)
                 PacketCard(heartRateState)

@@ -156,7 +156,7 @@ class HeartRateOverlayService : Service() {
         )
         view.bindReadout(
             sample?.bpm?.takeIf { it in 0..999 },
-            resolveOverlayForeground(appearance),
+            resolveOverlayForeground(appearance, sample?.bpm, sample?.sensorContact),
         )
     }
 

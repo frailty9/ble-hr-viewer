@@ -33,6 +33,7 @@ data class OverlayAppearance(
     val fontAlpha: Float = 0.65f,
     val showHeart: Boolean = true,
     val showUnit: Boolean = false,
+    val colorRules: List<HeartRateColorRule> = emptyList(),
 ) {
     companion object {
         val Default = OverlayAppearance()

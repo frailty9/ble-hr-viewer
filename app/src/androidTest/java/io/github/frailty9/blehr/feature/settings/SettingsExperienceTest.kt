@@ -15,8 +15,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.graphics.toArgb
@@ -42,6 +45,8 @@ import io.github.frailty9.blehr.data.privacy.PrivacyConsentStore
 import io.github.frailty9.blehr.data.settings.AppLanguage
 import io.github.frailty9.blehr.data.settings.AppTheme
 import io.github.frailty9.blehr.data.settings.LanguageSettings
+import io.github.frailty9.blehr.data.settings.HeartRateColorRule
+import io.github.frailty9.blehr.data.settings.HeartRateColorRules
 import io.github.frailty9.blehr.data.settings.OverlayAppearance
 import io.github.frailty9.blehr.data.settings.SettingsRepository
 import io.github.frailty9.blehr.feature.settings.components.LanguageSelector
@@ -111,6 +116,7 @@ class SettingsExperienceTest {
             repository.setFontAlpha(originalAppearance.fontAlpha)
             repository.setOverlayShowHeart(originalAppearance.showHeart)
             repository.setOverlayShowUnit(originalAppearance.showUnit)
+            repository.setHeartRateColorRules(originalAppearance.colorRules)
             activity.finish()
         }
     }
@@ -311,18 +317,33 @@ class SettingsExperienceTest {
     }
 
     @Test
-    fun overlayOptionsSaveAndResetTogether() {
+    fun overlayOptionsSaveAListAndResetTogether() {
         openSettings()
         val heart = compose.onNodeWithTag("overlay_show_heart").performScrollTo()
         val unit = compose.onNodeWithTag("overlay_show_unit").performScrollTo()
         heart.assertIsOn().performClick().assertIsOff()
         unit.assertIsOff().performClick().assertIsOn()
         heart.assertIsOff()
+        val input = compose.onNodeWithTag("overlay_threshold_input")
+        val save = compose.onNodeWithTag("overlay_threshold_save")
+        input.performScrollTo().performTextReplacement("251")
+        save.assertIsNotEnabled()
+        input.performTextReplacement("120")
+        save.performScrollTo().performClick()
         compose.runOnIdle {
             val preferences = activity.getSharedPreferences("overlay_appearance", 0)
             assertFalse(preferences.getBoolean("overlay_show_heart", true))
             assertTrue(preferences.getBoolean("overlay_show_unit", false))
+            val rules = listOf(HeartRateColorRule(120, 0xFF0000))
+            assertEquals(rules, repository.appearance.value.colorRules)
+            assertEquals(rules, HeartRateColorRules.decode(preferences.getString("heart_rate_color_rules", null)))
+            assertTrue(HeartRateColorRules.decode("""[{"minBpm":120.5,"foregroundRgb":0}]""").isEmpty())
+            assertTrue(HeartRateColorRules.decode("""[{"minBpm":120,"foregroundRgb":0},{"minBpm":120,"foregroundRgb":1}]""").isEmpty())
         }
+        compose.onNodeWithTag("overlay_threshold_preview").performScrollTo().performClick()
+        input.performScrollTo().performTextClearance()
+        save.performScrollTo().performClick()
+        compose.runOnIdle { assertTrue(repository.appearance.value.colorRules.isEmpty()) }
         compose.onNodeWithTag("overlay_appearance_reset").performScrollTo().performClick()
         heart.assertIsOn()
         unit.assertIsOff()
@@ -330,7 +351,7 @@ class SettingsExperienceTest {
     }
 
     @Test
-    fun liveOverlayChangesLayoutForSimulatedReadings() {
+    fun liveOverlayChangesLayoutAndColorForSimulatedReadings() {
         assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && Settings.canDrawOverlays(activity))
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val heartRate = HeartRateRepository.get(activity)
@@ -341,6 +362,7 @@ class SettingsExperienceTest {
         val originalState = state.value
         val wasEnabled = repository.isOverlayEnabled
         val base = 0x80FF0066.toInt()
+        val warningRed = 0x80FF0000.toInt()
         fun publish(bpm: Int?) = instrumentation.runOnMainSync {
             val sample = bpm?.let { HeartRateParser.parse(byteArrayOf(0, it.toByte())) }
             state.value = originalState.copy(sample = sample)
@@ -368,6 +390,7 @@ class SettingsExperienceTest {
                 repository.setOverlayShowUnit(false)
                 repository.setFontColor(0xFFFF0066.toInt())
                 repository.setFontAlpha(0.5f)
+                repository.setHeartRateColorRules(listOf(HeartRateColorRule(120, 0xFF0000)))
                 HeartRateOverlayService.show(activity)
             }
             publish(99)
@@ -380,7 +403,7 @@ class SettingsExperienceTest {
                 numberSize = (overlay.getChildAt(1) as TextView).textSize
             }
             publish(120)
-            readout("120", base)
+            readout("120", warningRed)
             instrumentation.runOnMainSync {
                 assertEquals(classicWidth, checkNotNull(view()).width)
                 repository.setOverlayShowHeart(false)

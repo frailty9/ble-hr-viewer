@@ -158,4 +158,10 @@
     <string name="cancel">Cancel</string>
     <string name="overlay_show_heart">Show heart icon</string>
     <string name="overlay_show_unit">Show unit</string>
+    <string name="overlay_threshold">Heart rate warning threshold (BPM)</string>
+    <string name="overlay_threshold_hint">Leave blank and save to turn off color changes.</string>
+    <string name="overlay_threshold_invalid">Enter a whole number from 1 to 250.</string>
+    <string name="overlay_threshold_save">Save threshold</string>
+    <string name="overlay_preview_normal">Preview normal color</string>
+    <string name="overlay_preview_threshold">Preview threshold color</string>
 </resources>

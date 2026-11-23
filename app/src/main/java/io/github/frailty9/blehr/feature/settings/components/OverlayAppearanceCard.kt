@@ -18,16 +18,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,12 +44,15 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import io.github.frailty9.blehr.R
+import io.github.frailty9.blehr.ble.SensorContact
 import io.github.frailty9.blehr.data.settings.OverlayAppearance
 import io.github.frailty9.blehr.data.settings.OverlayColors
+import io.github.frailty9.blehr.data.settings.OverlayThresholdRange
 import io.github.frailty9.blehr.overlay.HeartRateOverlayView
 import io.github.frailty9.blehr.overlay.resolveOverlayForeground
 import io.github.frailty9.blehr.ui.theme.Accent
@@ -63,7 +72,13 @@ internal fun OverlayAppearanceCard(
     onReset: () -> Unit,
     onShowHeartChanged: (Boolean) -> Unit,
     onShowUnitChanged: (Boolean) -> Unit,
+    onThresholdSaved: (Int?) -> Unit,
 ) {
+    val threshold = appearance.colorRules.singleOrNull()?.minBpm
+    var thresholdInput by rememberSaveable(threshold) { mutableStateOf(threshold?.toString().orEmpty()) }
+    var previewThreshold by rememberSaveable(threshold) { mutableStateOf(false) }
+    val inputBpm = thresholdInput.toIntOrNull()
+    val validThreshold = thresholdInput.isEmpty() || (inputBpm != null && inputBpm in OverlayThresholdRange)
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = LocalAppShapes.current.card,
@@ -78,7 +93,11 @@ internal fun OverlayAppearanceCard(
                 )
                 Spacer(Modifier.weight(1f))
                 TextButton(
-                    onClick = onReset,
+                    onClick = {
+                        thresholdInput = ""
+                        previewThreshold = false
+                        onReset()
+                    },
                     modifier = Modifier.testTag("overlay_appearance_reset"),
                     shape = LocalAppShapes.current.button,
                 ) {
@@ -97,7 +116,21 @@ internal fun OverlayAppearanceCard(
                 onCheckedChange = onShowUnitChanged,
                 modifier = Modifier.testTag("overlay_show_unit"),
             )
-            OverlayPreview(appearance, 123)
+            val previewBpm = when {
+                threshold == null -> 123
+                previewThreshold -> threshold
+                threshold == 1 -> null
+                else -> minOf(123, threshold - 1)
+            }
+            OverlayPreview(appearance, previewBpm)
+            if (threshold != null) {
+                TextButton(
+                    onClick = { previewThreshold = !previewThreshold },
+                    modifier = Modifier.testTag("overlay_threshold_preview"),
+                ) {
+                    Text(stringResource(if (previewThreshold) R.string.overlay_preview_normal else R.string.overlay_preview_threshold))
+                }
+            }
             Spacer(Modifier.height(10.dp))
 
             AppearanceLabel(stringResource(R.string.background_color))
@@ -136,6 +169,29 @@ internal fun OverlayAppearanceCard(
                 modifier = Modifier.fillMaxWidth().testTag("font_opacity_slider"),
             )
 
+            Spacer(Modifier.height(14.dp))
+            OutlinedTextField(
+                value = thresholdInput,
+                onValueChange = { thresholdInput = it },
+                modifier = Modifier.fillMaxWidth().testTag("overlay_threshold_input"),
+                label = { Text(stringResource(R.string.overlay_threshold)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                isError = !validThreshold,
+                supportingText = {
+                    Text(stringResource(if (validThreshold) R.string.overlay_threshold_hint else R.string.overlay_threshold_invalid))
+                },
+            )
+            TextButton(
+                onClick = {
+                    thresholdInput = inputBpm?.toString().orEmpty()
+                    onThresholdSaved(inputBpm)
+                },
+                enabled = validThreshold && inputBpm != threshold,
+                modifier = Modifier.align(Alignment.End).testTag("overlay_threshold_save"),
+            ) {
+                Text(stringResource(R.string.overlay_threshold_save))
+            }
         }
     }
 }
@@ -210,7 +266,7 @@ private fun AppearanceLabel(text: String) {
 
 @Composable
 private fun OverlayPreview(appearance: OverlayAppearance, bpm: Int?) {
-    val foreground = resolveOverlayForeground(appearance)
+    val foreground = resolveOverlayForeground(appearance, bpm, SensorContact.NOT_SUPPORTED)
     Box(
         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         contentAlignment = Alignment.Center,
