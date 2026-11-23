@@ -31,6 +31,8 @@ data class OverlayAppearance(
     val backgroundAlpha: Float = 0.3f,
     val fontColor: Int = OverlayColors.DefaultFont,
     val fontAlpha: Float = 0.65f,
+    val showHeart: Boolean = true,
+    val showUnit: Boolean = false,
 ) {
     companion object {
         val Default = OverlayAppearance()

@@ -54,6 +54,8 @@ fun SettingsRoute(
         onFontColorChanged = viewModel::setFontColor,
         onFontAlphaChanged = viewModel::setFontAlpha,
         onResetAppearance = viewModel::resetAppearance,
+        onOverlayShowHeartChanged = viewModel::setOverlayShowHeart,
+        onOverlayShowUnitChanged = viewModel::setOverlayShowUnit,
         versionName = BuildConfig.VERSION_NAME,
         contactEmail = LegalDocuments.CONTACT_EMAIL,
         filingNumber = BuildConfig.APP_FILING_NUMBER,

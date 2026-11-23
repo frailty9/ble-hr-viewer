@@ -156,4 +156,6 @@
     <string name="withdraw_consent_message">This clears the saved Bluetooth device and closes the app. Uninstalling also deletes all local data.</string>
     <string name="withdraw_consent_confirm">Withdraw</string>
     <string name="cancel">Cancel</string>
+    <string name="overlay_show_heart">Show heart icon</string>
+    <string name="overlay_show_unit">Show unit</string>
 </resources>

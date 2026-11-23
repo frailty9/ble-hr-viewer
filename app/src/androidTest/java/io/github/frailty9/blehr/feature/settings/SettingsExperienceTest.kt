@@ -5,12 +5,18 @@ import android.app.NotificationManager
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
+import android.view.View
+import android.view.WindowManager
+import android.view.inspector.WindowInspector
+import android.widget.TextView
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.graphics.toArgb
@@ -29,6 +35,9 @@ import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
 import io.github.frailty9.blehr.MainActivity
 import io.github.frailty9.blehr.R
+import io.github.frailty9.blehr.ble.HeartRateParser
+import io.github.frailty9.blehr.data.heartrate.HeartRateRepository
+import io.github.frailty9.blehr.data.heartrate.HeartRateState
 import io.github.frailty9.blehr.data.privacy.PrivacyConsentStore
 import io.github.frailty9.blehr.data.settings.AppLanguage
 import io.github.frailty9.blehr.data.settings.AppTheme
@@ -37,7 +46,9 @@ import io.github.frailty9.blehr.data.settings.OverlayAppearance
 import io.github.frailty9.blehr.data.settings.SettingsRepository
 import io.github.frailty9.blehr.feature.settings.components.LanguageSelector
 import io.github.frailty9.blehr.overlay.HeartRateOverlayService
+import io.github.frailty9.blehr.overlay.HeartRateOverlayView
 import io.github.frailty9.blehr.ui.theme.BleHrTheme
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -98,6 +109,8 @@ class SettingsExperienceTest {
             repository.setBackgroundAlpha(originalAppearance.backgroundAlpha)
             repository.setFontColor(originalAppearance.fontColor)
             repository.setFontAlpha(originalAppearance.fontAlpha)
+            repository.setOverlayShowHeart(originalAppearance.showHeart)
+            repository.setOverlayShowUnit(originalAppearance.showUnit)
             activity.finish()
         }
     }
@@ -293,6 +306,138 @@ class SettingsExperienceTest {
                 } else {
                     activity.stopService(android.content.Intent(activity, HeartRateOverlayService::class.java))
                 }
+            }
+        }
+    }
+
+    @Test
+    fun overlayOptionsSaveAndResetTogether() {
+        openSettings()
+        val heart = compose.onNodeWithTag("overlay_show_heart").performScrollTo()
+        val unit = compose.onNodeWithTag("overlay_show_unit").performScrollTo()
+        heart.assertIsOn().performClick().assertIsOff()
+        unit.assertIsOff().performClick().assertIsOn()
+        heart.assertIsOff()
+        compose.runOnIdle {
+            val preferences = activity.getSharedPreferences("overlay_appearance", 0)
+            assertFalse(preferences.getBoolean("overlay_show_heart", true))
+            assertTrue(preferences.getBoolean("overlay_show_unit", false))
+        }
+        compose.onNodeWithTag("overlay_appearance_reset").performScrollTo().performClick()
+        heart.assertIsOn()
+        unit.assertIsOff()
+        compose.runOnIdle { assertEquals(OverlayAppearance.Default, repository.appearance.value) }
+    }
+
+    @Test
+    fun liveOverlayChangesLayoutForSimulatedReadings() {
+        assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && Settings.canDrawOverlays(activity))
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val heartRate = HeartRateRepository.get(activity)
+        // Supply samples without a BLE peripheral or a production test entry point.
+        val field = HeartRateRepository::class.java.getDeclaredField("_ui").apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val state = field.get(heartRate) as MutableStateFlow<HeartRateState>
+        val originalState = state.value
+        val wasEnabled = repository.isOverlayEnabled
+        val base = 0x80FF0066.toInt()
+        fun publish(bpm: Int?) = instrumentation.runOnMainSync {
+            val sample = bpm?.let { HeartRateParser.parse(byteArrayOf(0, it.toByte())) }
+            state.value = originalState.copy(sample = sample)
+        }
+        fun view(): HeartRateOverlayView? = WindowInspector.getGlobalWindowViews()
+            .filterIsInstance<HeartRateOverlayView>().singleOrNull()
+        fun readout(text: String, color: Int) {
+            compose.waitUntil(10_000) {
+                var matches = false
+                instrumentation.runOnMainSync {
+                    val number = view()?.getChildAt(1) as? TextView
+                    matches = number?.text?.toString() == text && number?.currentTextColor == color
+                }
+                matches
+            }
+        }
+        fun shell(command: String) {
+            instrumentation.uiAutomation.executeShellCommand(command).use {
+                java.io.FileInputStream(it.fileDescriptor).use { input -> input.readBytes() }
+            }
+        }
+        try {
+            instrumentation.runOnMainSync {
+                repository.setOverlayShowHeart(true)
+                repository.setOverlayShowUnit(false)
+                repository.setFontColor(0xFFFF0066.toInt())
+                repository.setFontAlpha(0.5f)
+                HeartRateOverlayService.show(activity)
+            }
+            publish(99)
+            readout("99", base)
+            var classicWidth = 0
+            var numberSize = 0f
+            instrumentation.runOnMainSync {
+                val overlay = checkNotNull(view())
+                classicWidth = overlay.width
+                numberSize = (overlay.getChildAt(1) as TextView).textSize
+            }
+            publish(120)
+            readout("120", base)
+            instrumentation.runOnMainSync {
+                assertEquals(classicWidth, checkNotNull(view()).width)
+                repository.setOverlayShowHeart(false)
+            }
+            compose.waitUntil(10_000) {
+                var minimal = false
+                instrumentation.runOnMainSync { minimal = (view()?.width ?: classicWidth) < classicWidth }
+                minimal
+            }
+            var x = 0
+            var y = 0
+            instrumentation.runOnMainSync {
+                val overlay = checkNotNull(view())
+                val position = IntArray(2)
+                overlay.getLocationOnScreen(position)
+                x = position[0] + overlay.width / 2
+                y = position[1] + overlay.height / 2
+            }
+            val screenWidth = activity.resources.displayMetrics.widthPixels
+            shell("input swipe $x $y ${screenWidth - 2} $y 300")
+            fun assertVisibleElements(showHeart: Boolean, showUnit: Boolean) {
+                compose.waitUntil(10_000) {
+                    var matches = false
+                    instrumentation.runOnMainSync {
+                        val overlay = view()
+                        matches = overlay != null &&
+                            (overlay.getChildAt(0).visibility == View.VISIBLE) == showHeart &&
+                            (overlay.getChildAt(2).visibility == View.VISIBLE) == showUnit &&
+                            overlay.width == overlay.windowWidthPx
+                        if (matches && overlay != null) {
+                            val position = overlay.layoutParams as WindowManager.LayoutParams
+                            assertEquals(numberSize, (overlay.getChildAt(1) as TextView).textSize, 0f)
+                            assertTrue(position.x + overlay.width <= screenWidth)
+                        }
+                    }
+                    matches
+                }
+            }
+            instrumentation.runOnMainSync { repository.setOverlayShowUnit(true) }
+            assertVisibleElements(showHeart = false, showUnit = true)
+            instrumentation.runOnMainSync { repository.setOverlayShowHeart(true) }
+            assertVisibleElements(showHeart = true, showUnit = true)
+            publish(null)
+            readout("--", base)
+            instrumentation.runOnMainSync {
+                val overlay = checkNotNull(view())
+                val position = IntArray(2)
+                overlay.getLocationOnScreen(position)
+                x = position[0] + overlay.width / 2
+                y = position[1] + overlay.height / 2
+            }
+            shell("input swipe $x $y $x $y 800")
+            compose.waitUntil(10_000) { !HeartRateOverlayService.isVisible.value }
+        } finally {
+            instrumentation.runOnMainSync {
+                state.value = originalState
+                if (wasEnabled) HeartRateOverlayService.show(activity) else HeartRateOverlayService.hide(activity)
             }
         }
     }

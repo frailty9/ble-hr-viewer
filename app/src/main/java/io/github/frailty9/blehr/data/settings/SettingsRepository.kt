@@ -15,6 +15,9 @@ class SettingsRepository private constructor(context: Context) {
         private const val KEY_BG_ALPHA = "bg_alpha"
         private const val KEY_FONT_COLOR = "font_color"
         private const val KEY_FONT_ALPHA = "font_alpha"
+        private const val KEY_LEGACY_OVERLAY_LAYOUT = "overlay_layout"
+        private const val KEY_OVERLAY_SHOW_HEART = "overlay_show_heart"
+        private const val KEY_OVERLAY_SHOW_UNIT = "overlay_show_unit"
         private const val KEY_THEME = "theme_mode"
         private const val KEY_HEART_RATE_TIMEOUT = "heart_rate_timeout_seconds"
 
@@ -73,6 +76,10 @@ class SettingsRepository private constructor(context: Context) {
     fun setFontAlpha(alpha: Float) =
         commit(_appearance.value.copy(fontAlpha = alpha.coerceIn(0f, 1f)))
 
+    fun setOverlayShowHeart(show: Boolean) = commit(_appearance.value.copy(showHeart = show))
+
+    fun setOverlayShowUnit(show: Boolean) = commit(_appearance.value.copy(showUnit = show))
+
     fun reset() = commit(OverlayAppearance.Default)
 
     private fun commit(value: OverlayAppearance) {
@@ -82,6 +89,9 @@ class SettingsRepository private constructor(context: Context) {
             putFloat(KEY_BG_ALPHA, value.backgroundAlpha)
             putInt(KEY_FONT_COLOR, value.fontColor)
             putFloat(KEY_FONT_ALPHA, value.fontAlpha)
+            putBoolean(KEY_OVERLAY_SHOW_HEART, value.showHeart)
+            putBoolean(KEY_OVERLAY_SHOW_UNIT, value.showUnit)
+            remove(KEY_LEGACY_OVERLAY_LAYOUT)
         }
     }
 
@@ -101,6 +111,15 @@ class SettingsRepository private constructor(context: Context) {
         fontAlpha = prefs.getFloat(
             KEY_FONT_ALPHA,
             OverlayAppearance.Default.fontAlpha,
+        ),
+        // Preserve the visible elements chosen in the earlier snapshot until the next save.
+        showHeart = prefs.getBoolean(
+            KEY_OVERLAY_SHOW_HEART,
+            prefs.getString(KEY_LEGACY_OVERLAY_LAYOUT, null) !in listOf("minimal", "large"),
+        ),
+        showUnit = prefs.getBoolean(
+            KEY_OVERLAY_SHOW_UNIT,
+            prefs.getString(KEY_LEGACY_OVERLAY_LAYOUT, null) == "large",
         ),
     )
 }

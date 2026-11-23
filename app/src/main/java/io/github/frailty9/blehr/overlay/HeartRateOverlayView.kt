@@ -2,6 +2,7 @@ package io.github.frailty9.blehr.overlay
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
@@ -16,14 +17,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
-import io.github.frailty9.blehr.data.heartrate.HeartRateState
 import io.github.frailty9.blehr.data.settings.OverlayAppearance
 import io.github.frailty9.blehr.data.settings.OverlayColors
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.cos
-import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -52,6 +51,7 @@ class HeartRateOverlayView(
         const val ICON_SIZE_DP = 16
         const val ICON_GAP_DP = 4
         const val TEXT_SIZE_SP = 17f
+        const val UNIT_SIZE_SP = 11f
         const val BPM_CHARACTER_COUNT = 3
         const val ELEVATION_DP = 4
 
@@ -60,10 +60,12 @@ class HeartRateOverlayView(
         const val DRAG_SLOP_DP = 1
     }
 
-    val windowMarginPx: Int = dp(WINDOW_MARGIN_DP)
-    val initialTopPx: Int = dp(INITIAL_TOP_DP)
-    val fallbackWindowHeightPx: Int =
-        dp(max(ICON_SIZE_DP, 22) + PADDING_VERTICAL_DP * 2)
+    val windowMarginPx: Int get() = dp(WINDOW_MARGIN_DP)
+    val initialTopPx: Int get() = dp(INITIAL_TOP_DP)
+    var windowWidthPx: Int = 0
+        private set
+    var windowHeightPx: Int = 0
+        private set
 
     private val heart = StaticHeartView(context)
     private val bpmText = TextView(context).apply {
@@ -73,20 +75,21 @@ class HeartRateOverlayView(
         maxLines = 1
         gravity = Gravity.CENTER
         text = "--"
-        setTextColor(OverlayColors.DefaultFont)
+
     }
-    // Reserve three digits regardless of the current value or system font scale.
-    private val bpmWidthPx = ceil(
-        ('0'..'9').maxOf { bpmText.paint.measureText(it.toString()) } * BPM_CHARACTER_COUNT,
-    ).toInt()
-    val windowWidthPx: Int =
-        dp(PADDING_HORIZONTAL_DP) * 2 + dp(ICON_SIZE_DP) + dp(ICON_GAP_DP) + bpmWidthPx
+    private val unitText = TextView(context).apply {
+        includeFontPadding = false
+        maxLines = 1
+        text = "BPM"
+    }
 
     private val handler = Handler(Looper.getMainLooper())
     private val longPressRunnable = Runnable { onClose() }
 
-    private var appearance = OverlayAppearance.Default
-    private var state = HeartRateState()
+    private var showHeart = OverlayAppearance.Default.showHeart
+    private var showUnit = OverlayAppearance.Default.showUnit
+    private var backgroundColor = OverlayAppearance.Default.backgroundColor
+    private var backgroundAlpha = OverlayAppearance.Default.backgroundAlpha
     private var downRawX = 0f
     private var downRawY = 0f
     private var lastRawX = 0f
@@ -96,56 +99,78 @@ class HeartRateOverlayView(
     init {
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-        setPadding(
-            dp(PADDING_HORIZONTAL_DP),
-            dp(PADDING_VERTICAL_DP),
-            dp(PADDING_HORIZONTAL_DP),
-            dp(PADDING_VERTICAL_DP),
-        )
-        elevation = dp(ELEVATION_DP).toFloat()
         isClickable = true
-
-        addView(
-            heart,
-            LayoutParams(dp(ICON_SIZE_DP), dp(ICON_SIZE_DP)),
-        )
-        addView(
-            bpmText,
-            LayoutParams(bpmWidthPx, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                marginStart = dp(ICON_GAP_DP)
-            },
-        )
-
-        applyAppearance(OverlayAppearance.Default)
+        addView(heart, LayoutParams(0, 0))
+        addView(bpmText, LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT))
+        addView(unitText, LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT))
+        refreshDimensions()
         setOnTouchListener { _, event -> handleTouch(event) }
     }
 
-    fun bindState(state: HeartRateState) {
-        this.state = state
-        render()
+    fun bindAppearance(showHeart: Boolean, showUnit: Boolean, color: Int, alpha: Float) {
+        if (this.showHeart != showHeart || this.showUnit != showUnit) {
+            this.showHeart = showHeart
+            this.showUnit = showUnit
+            refreshDimensions()
+        }
+        if (backgroundColor != color || backgroundAlpha != alpha) {
+            backgroundColor = color
+            backgroundAlpha = alpha
+            applyBackground()
+        }
     }
 
-    fun bindAppearance(appearance: OverlayAppearance) {
-        this.appearance = appearance
-        applyAppearance(appearance)
-        render()
+    fun bindReadout(bpm: Int?, foreground: Int) {
+        val text = bpm?.toString() ?: "--"
+        if (text != bpmText.text.toString()) bpmText.text = text
+        if (bpmText.currentTextColor != foreground) {
+            bpmText.setTextColor(foreground)
+            unitText.setTextColor(foreground)
+            heart.setColor(foreground)
+        }
     }
 
-    private fun render() {
-        val sample = state.sample
-        bpmText.text = if (sample != null) sample.bpm.toString() else "--"
-        val font = withAlpha(appearance.fontColor, appearance.fontAlpha)
-        bpmText.setTextColor(font)
-        heart.setColor(font)
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        refreshDimensions()
     }
 
-    private fun applyAppearance(appearance: OverlayAppearance) {
+    fun refreshDimensions() {
+        val horizontal = dp(PADDING_HORIZONTAL_DP)
+        val vertical = dp(PADDING_VERTICAL_DP)
+        val gap = dp(ICON_GAP_DP)
+        val iconSize = dp(ICON_SIZE_DP)
+        setPadding(horizontal, vertical, horizontal, vertical)
+        elevation = dp(ELEVATION_DP).toFloat()
+        bpmText.setTextSize(TypedValue.COMPLEX_UNIT_SP, TEXT_SIZE_SP)
+        unitText.setTextSize(TypedValue.COMPLEX_UNIT_SP, UNIT_SIZE_SP)
+        // Reserve three digits regardless of the current value or system font scale.
+        val bpmWidth = ceil(
+            ('0'..'9').maxOf { bpmText.paint.measureText(it.toString()) } * BPM_CHARACTER_COUNT,
+        ).toInt()
+        val unitWidth = ceil(unitText.paint.measureText(unitText.text.toString())).toInt()
+        heart.visibility = if (showHeart) View.VISIBLE else View.GONE
+        unitText.visibility = if (showUnit) View.VISIBLE else View.GONE
+        heart.layoutParams = LayoutParams(iconSize, iconSize)
+        bpmText.layoutParams = LayoutParams(bpmWidth, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            marginStart = if (showHeart) gap else 0
+        }
+        unitText.layoutParams = LayoutParams(unitWidth, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            marginStart = gap
+        }
+        measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED)
+        windowWidthPx = measuredWidth
+        windowHeightPx = measuredHeight
+        applyBackground()
+    }
+
+    private fun applyBackground() {
         background = GradientDrawable().apply {
             cornerRadius = dp(CORNER_RADIUS_DP).toFloat()
-            setColor(withAlpha(appearance.backgroundColor, appearance.backgroundAlpha))
+            setColor(withAlpha(backgroundColor, backgroundAlpha))
             setStroke(
                 dp(BORDER_WIDTH_DP),
-                withAlpha(0xFFFFFF, appearance.backgroundAlpha * BORDER_ALPHA_FACTOR),
+                withAlpha(0xFFFFFF, backgroundAlpha * BORDER_ALPHA_FACTOR),
             )
         }
     }

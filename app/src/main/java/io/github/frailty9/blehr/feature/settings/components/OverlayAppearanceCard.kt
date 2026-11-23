@@ -16,12 +16,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,16 +37,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import io.github.frailty9.blehr.R
-import io.github.frailty9.blehr.ble.HeartRateSample
-import io.github.frailty9.blehr.ble.SensorContact
-import io.github.frailty9.blehr.data.heartrate.HeartRateState
 import io.github.frailty9.blehr.data.settings.OverlayAppearance
 import io.github.frailty9.blehr.data.settings.OverlayColors
 import io.github.frailty9.blehr.overlay.HeartRateOverlayView
+import io.github.frailty9.blehr.overlay.resolveOverlayForeground
 import io.github.frailty9.blehr.ui.theme.Accent
 import io.github.frailty9.blehr.ui.theme.Ink
 import io.github.frailty9.blehr.ui.theme.LocalAppShapes
@@ -60,6 +61,8 @@ internal fun OverlayAppearanceCard(
     onFontColorChanged: (Int) -> Unit,
     onFontAlphaChanged: (Float) -> Unit,
     onReset: () -> Unit,
+    onShowHeartChanged: (Boolean) -> Unit,
+    onShowUnitChanged: (Boolean) -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -82,7 +85,19 @@ internal fun OverlayAppearanceCard(
                     Text(stringResource(R.string.reset_defaults))
                 }
             }
-            OverlayPreview(appearance)
+            OverlayDisplaySwitch(
+                label = stringResource(R.string.overlay_show_heart),
+                checked = appearance.showHeart,
+                onCheckedChange = onShowHeartChanged,
+                modifier = Modifier.testTag("overlay_show_heart"),
+            )
+            OverlayDisplaySwitch(
+                label = stringResource(R.string.overlay_show_unit),
+                checked = appearance.showUnit,
+                onCheckedChange = onShowUnitChanged,
+                modifier = Modifier.testTag("overlay_show_unit"),
+            )
+            OverlayPreview(appearance, 123)
             Spacer(Modifier.height(10.dp))
 
             AppearanceLabel(stringResource(R.string.background_color))
@@ -120,7 +135,27 @@ internal fun OverlayAppearanceCard(
                 onValueChange = onFontAlphaChanged,
                 modifier = Modifier.fillMaxWidth().testTag("font_opacity_slider"),
             )
+
         }
+    }
+}
+
+@Composable
+private fun OverlayDisplaySwitch(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth()
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = Ink)
+        Switch(checked = checked, onCheckedChange = null)
     }
 }
 
@@ -174,34 +209,21 @@ private fun AppearanceLabel(text: String) {
 
 
 @Composable
-private fun OverlayPreview(appearance: OverlayAppearance) {
-    val previewState = remember {
-        HeartRateState(
-            sample = HeartRateSample(
-                bpm = 123,
-                sensorContact = SensorContact.NOT_SUPPORTED,
-                energyExpendedKj = null,
-                rrIntervalsRaw = emptyList(),
-                flags = 0,
-                raw = byteArrayOf(),
-                warnings = emptyList(),
-                receivedAtMillis = 0L,
-            ),
-        )
-    }
+private fun OverlayPreview(appearance: OverlayAppearance, bpm: Int?) {
+    val foreground = resolveOverlayForeground(appearance)
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
         AndroidView(
-            factory = { context ->
-                HeartRateOverlayView(context, onClose = {}, onDrag = { _, _ -> }).apply {
-                    bindState(previewState)
-                }
+            factory = { context -> HeartRateOverlayView(context, onClose = {}, onDrag = { _, _ -> }) },
+            update = { view ->
+                view.bindAppearance(
+                    appearance.showHeart, appearance.showUnit, appearance.backgroundColor, appearance.backgroundAlpha,
+                )
+                view.bindReadout(bpm, foreground)
             },
-            update = { view -> view.bindAppearance(appearance) },
+            modifier = Modifier.testTag("overlay_appearance_preview"),
         )
     }
 }

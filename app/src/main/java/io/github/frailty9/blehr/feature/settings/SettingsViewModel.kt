@@ -23,6 +23,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setBackgroundAlpha(alpha: Float) = repository.setBackgroundAlpha(alpha)
     fun setFontColor(color: Int) = repository.setFontColor(color)
     fun setFontAlpha(alpha: Float) = repository.setFontAlpha(alpha)
+    fun setOverlayShowHeart(show: Boolean) = repository.setOverlayShowHeart(show)
+
+    fun setOverlayShowUnit(show: Boolean) = repository.setOverlayShowUnit(show)
+
     fun resetAppearance() = repository.reset()
 
     // Lint misreads the Class reference in the Intent constructor as a SAM conversion.

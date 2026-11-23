@@ -26,8 +26,10 @@ import androidx.core.content.ContextCompat
 import io.github.frailty9.blehr.MainActivity
 import io.github.frailty9.blehr.R
 import io.github.frailty9.blehr.data.heartrate.HeartRateRepository
+import io.github.frailty9.blehr.data.heartrate.HeartRateState
 import io.github.frailty9.blehr.data.privacy.PrivacyConsentStore
 import io.github.frailty9.blehr.data.settings.LanguageSettings
+import io.github.frailty9.blehr.data.settings.OverlayAppearance
 import io.github.frailty9.blehr.data.settings.SettingsRepository
 import kotlin.math.max
 import kotlinx.coroutines.CoroutineScope
@@ -36,6 +38,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 class HeartRateOverlayService : Service() {
@@ -102,13 +105,10 @@ class HeartRateOverlayService : Service() {
         createNotificationChannel()
         LanguageSettings.preferences(this).registerOnSharedPreferenceChangeListener(languageListener)
         scope.launch {
-            repository.ui.collect { state ->
-                overlay?.bindState(state)
-            }
-        }
-        scope.launch {
-            settings.appearance.collect { appearance ->
-                overlay?.bindAppearance(appearance)
+            combine(repository.ui, settings.appearance, ::Pair).collect { (state, appearance) ->
+                val view = overlay ?: return@collect
+                render(view, state, appearance)
+                fitWindow(view)
             }
         }
     }
@@ -145,9 +145,31 @@ class HeartRateOverlayService : Service() {
         super.onConfigurationChanged(newConfig)
         refreshNotificationLanguage()
         val view = overlay ?: return
+        view.refreshDimensions()
+        fitWindow(view)
+    }
+
+    private fun render(view: HeartRateOverlayView, state: HeartRateState, appearance: OverlayAppearance) {
+        val sample = state.sample
+        view.bindAppearance(
+            appearance.showHeart, appearance.showUnit, appearance.backgroundColor, appearance.backgroundAlpha,
+        )
+        view.bindReadout(
+            sample?.bpm?.takeIf { it in 0..999 },
+            resolveOverlayForeground(appearance),
+        )
+    }
+
+    private fun fitWindow(view: HeartRateOverlayView) {
         val layout = params ?: return
+        val x = layout.x
+        val y = layout.y
+        val width = layout.width
+        layout.width = view.windowWidthPx
         clampToScreen(view, layout)
-        windowManager.updateViewLayout(view, layout)
+        if (layout.width != width || layout.x != x || layout.y != y) {
+            windowManager.updateViewLayout(view, layout)
+        }
     }
 
     private fun refreshNotificationLanguage() {
@@ -199,6 +221,7 @@ class HeartRateOverlayService : Service() {
             onClose = ::hideOverlay,
             onDrag = ::dragBy,
         )
+        render(view, repository.ui.value, settings.appearance.value)
         val layout = WindowManager.LayoutParams(
             view.windowWidthPx,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -214,6 +237,7 @@ class HeartRateOverlayService : Service() {
             y = view.initialTopPx
             title = "BleHrOverlay"
         }
+        clampToScreen(view, layout)
         view.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(attachedView: View) {
                 if (overlay === attachedView) _isVisible.value = true
@@ -231,8 +255,6 @@ class HeartRateOverlayService : Service() {
         params = layout
         try {
             windowManager.addView(view, layout)
-            view.bindAppearance(settings.appearance.value)
-            view.bindState(repository.ui.value)
             if (!restoring) {
                 settings.setOverlayEnabled(true)
                 Toast.makeText(this, localizedString(R.string.overlay_gestures), Toast.LENGTH_SHORT).show()
@@ -261,8 +283,8 @@ class HeartRateOverlayService : Service() {
 
     private fun clampToScreen(view: HeartRateOverlayView, layout: WindowManager.LayoutParams) {
         val screen = resources.displayMetrics
-        val width = if (view.width > 0) view.width else view.windowWidthPx
-        val height = if (view.height > 0) view.height else view.fallbackWindowHeightPx
+        val width = view.windowWidthPx
+        val height = view.windowHeightPx
         layout.x = layout.x.coerceIn(0, max(0, screen.widthPixels - width))
         layout.y = layout.y.coerceIn(0, max(0, screen.heightPixels - height))
     }

@@ -153,4 +153,6 @@
     <string name="withdraw_consent_message">这将清除已保存的蓝牙设备信息并关闭应用。卸载应用也会删除全部本地数据。</string>
     <string name="withdraw_consent_confirm">撤回</string>
     <string name="cancel">取消</string>
+    <string name="overlay_show_heart">显示心形</string>
+    <string name="overlay_show_unit">显示单位</string>
 </resources>
