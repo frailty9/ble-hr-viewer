@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -16,7 +18,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.frailty9.blehr.R
-import io.github.frailty9.blehr.ui.theme.ErrorRed
 import io.github.frailty9.blehr.ui.theme.Ink
 import io.github.frailty9.blehr.ui.theme.LocalAppShapes
 import io.github.frailty9.blehr.ui.theme.Muted
@@ -76,15 +77,16 @@ internal fun AboutCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = Muted,
             )
-            TextButton(
+            Button(
                 onClick = onWithdrawConsent,
                 shape = LocalAppShapes.current.button,
                 modifier = Modifier.testTag("about_withdraw"),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
+                ),
             ) {
-                Text(
-                    text = stringResource(R.string.about_withdraw_consent),
-                    color = ErrorRed,
-                )
+                Text(stringResource(R.string.about_withdraw_consent))
             }
         }
     }

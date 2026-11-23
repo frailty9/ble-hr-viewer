@@ -29,7 +29,7 @@ private val DarkColors = darkColorScheme(
     outline = Color(0xFF596574),
     outlineVariant = Color(0xFF273140),
     error = Color(0xFFF85149),
-    onError = Color.White,
+    onError = Color(0xFF230502),
 )
 
 private val LightColors = lightColorScheme(
