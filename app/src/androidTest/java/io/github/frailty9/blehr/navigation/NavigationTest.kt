@@ -17,6 +17,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalContext
@@ -27,6 +28,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -378,7 +380,11 @@ class NavigationTest {
                 }
             }
         }
-        compose.onNodeWithText("Preview HR").assertIsDisplayed().performClick()
+        val card = compose.onNodeWithTag("nearby_devices_card")
+        val row = compose.onNodeWithText("Preview HR").assertIsDisplayed()
+        val rowCenterY = row.fetchSemanticsNode().boundsInRoot.center.y -
+            card.fetchSemanticsNode().boundsInRoot.top
+        card.performTouchInput { click(Offset(4.dp.toPx(), rowCenterY)) }
         compose.runOnIdle { assertTrue(clicked) }
     }
 

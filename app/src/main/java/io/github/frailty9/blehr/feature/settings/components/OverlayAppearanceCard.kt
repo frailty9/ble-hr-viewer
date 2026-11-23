@@ -79,13 +79,14 @@ internal fun OverlayAppearanceCard(
     var previewThreshold by rememberSaveable(threshold) { mutableStateOf(false) }
     val inputBpm = thresholdInput.toIntOrNull()
     val validThreshold = thresholdInput.isEmpty() || (inputBpm != null && inputBpm in OverlayThresholdRange)
+    val contentInset = Modifier.padding(horizontal = OverlayCardInset)
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = LocalAppShapes.current.card,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        Column(Modifier.padding(18.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.padding(vertical = OverlayCardInset)) {
+            Row(modifier = contentInset, verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = stringResource(R.string.overlay_appearance),
                     style = MaterialTheme.typography.titleMedium,
@@ -122,79 +123,83 @@ internal fun OverlayAppearanceCard(
                 threshold == 1 -> null
                 else -> minOf(123, threshold - 1)
             }
-            OverlayPreview(appearance, previewBpm)
+            OverlayPreview(appearance, previewBpm, contentInset)
             if (threshold != null) {
                 TextButton(
                     onClick = { previewThreshold = !previewThreshold },
-                    modifier = Modifier.testTag("overlay_threshold_preview"),
+                    modifier = contentInset.testTag("overlay_threshold_preview"),
                 ) {
                     Text(stringResource(if (previewThreshold) R.string.overlay_preview_normal else R.string.overlay_preview_threshold))
                 }
             }
             Spacer(Modifier.height(10.dp))
 
-            AppearanceLabel(stringResource(R.string.background_color))
-            Spacer(Modifier.height(6.dp))
-            ColorSwatchRow(
-                selected = appearance.backgroundColor,
-                colors = OverlayColors.BackgroundPresets,
-                onSelect = onBackgroundColorChanged,
-            )
+            Column(contentInset) {
+                AppearanceLabel(stringResource(R.string.background_color))
+                Spacer(Modifier.height(6.dp))
+                ColorSwatchRow(
+                    selected = appearance.backgroundColor,
+                    colors = OverlayColors.BackgroundPresets,
+                    onSelect = onBackgroundColorChanged,
+                )
 
-            Spacer(Modifier.height(10.dp))
-            AppearanceLabel(
-                stringResource(R.string.background_opacity, (appearance.backgroundAlpha * 100).roundToInt())
-            )
-            OpacitySlider(
-                value = appearance.backgroundAlpha,
-                onValueChange = onBackgroundAlphaChanged,
-                modifier = Modifier.fillMaxWidth().testTag("background_opacity_slider"),
-            )
+                Spacer(Modifier.height(10.dp))
+                AppearanceLabel(
+                    stringResource(R.string.background_opacity, (appearance.backgroundAlpha * 100).roundToInt())
+                )
+                OpacitySlider(
+                    value = appearance.backgroundAlpha,
+                    onValueChange = onBackgroundAlphaChanged,
+                    modifier = Modifier.fillMaxWidth().testTag("background_opacity_slider"),
+                )
 
-            AppearanceLabel(stringResource(R.string.font_color))
-            Spacer(Modifier.height(6.dp))
-            ColorSwatchRow(
-                selected = appearance.fontColor,
-                colors = OverlayColors.FontPresets,
-                onSelect = onFontColorChanged,
-            )
+                AppearanceLabel(stringResource(R.string.font_color))
+                Spacer(Modifier.height(6.dp))
+                ColorSwatchRow(
+                    selected = appearance.fontColor,
+                    colors = OverlayColors.FontPresets,
+                    onSelect = onFontColorChanged,
+                )
 
-            Spacer(Modifier.height(10.dp))
-            AppearanceLabel(
-                stringResource(R.string.font_opacity, (appearance.fontAlpha * 100).roundToInt())
-            )
-            OpacitySlider(
-                value = appearance.fontAlpha,
-                onValueChange = onFontAlphaChanged,
-                modifier = Modifier.fillMaxWidth().testTag("font_opacity_slider"),
-            )
+                Spacer(Modifier.height(10.dp))
+                AppearanceLabel(
+                    stringResource(R.string.font_opacity, (appearance.fontAlpha * 100).roundToInt())
+                )
+                OpacitySlider(
+                    value = appearance.fontAlpha,
+                    onValueChange = onFontAlphaChanged,
+                    modifier = Modifier.fillMaxWidth().testTag("font_opacity_slider"),
+                )
 
-            Spacer(Modifier.height(14.dp))
-            OutlinedTextField(
-                value = thresholdInput,
-                onValueChange = { thresholdInput = it },
-                modifier = Modifier.fillMaxWidth().testTag("overlay_threshold_input"),
-                label = { Text(stringResource(R.string.overlay_threshold)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                isError = !validThreshold,
-                supportingText = {
-                    Text(stringResource(if (validThreshold) R.string.overlay_threshold_hint else R.string.overlay_threshold_invalid))
-                },
-            )
-            TextButton(
-                onClick = {
-                    thresholdInput = inputBpm?.toString().orEmpty()
-                    onThresholdSaved(inputBpm)
-                },
-                enabled = validThreshold && inputBpm != threshold,
-                modifier = Modifier.align(Alignment.End).testTag("overlay_threshold_save"),
-            ) {
-                Text(stringResource(R.string.overlay_threshold_save))
+                Spacer(Modifier.height(14.dp))
+                OutlinedTextField(
+                    value = thresholdInput,
+                    onValueChange = { thresholdInput = it },
+                    modifier = Modifier.fillMaxWidth().testTag("overlay_threshold_input"),
+                    label = { Text(stringResource(R.string.overlay_threshold)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = !validThreshold,
+                    supportingText = {
+                        Text(stringResource(if (validThreshold) R.string.overlay_threshold_hint else R.string.overlay_threshold_invalid))
+                    },
+                )
+                TextButton(
+                    onClick = {
+                        thresholdInput = inputBpm?.toString().orEmpty()
+                        onThresholdSaved(inputBpm)
+                    },
+                    enabled = validThreshold && inputBpm != threshold,
+                    modifier = Modifier.align(Alignment.End).testTag("overlay_threshold_save"),
+                ) {
+                    Text(stringResource(R.string.overlay_threshold_save))
+                }
             }
         }
     }
 }
+
+private val OverlayCardInset = 18.dp
 
 @Composable
 private fun OverlayDisplaySwitch(
@@ -206,7 +211,7 @@ private fun OverlayDisplaySwitch(
     Row(
         modifier = modifier.fillMaxWidth()
             .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
-            .padding(vertical = 8.dp),
+            .padding(horizontal = OverlayCardInset, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -265,10 +270,10 @@ private fun AppearanceLabel(text: String) {
 
 
 @Composable
-private fun OverlayPreview(appearance: OverlayAppearance, bpm: Int?) {
+private fun OverlayPreview(appearance: OverlayAppearance, bpm: Int?, modifier: Modifier = Modifier) {
     val foreground = resolveOverlayForeground(appearance, bpm, SensorContact.NOT_SUPPORTED)
     Box(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        modifier = modifier.fillMaxWidth().padding(vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
         AndroidView(

@@ -40,6 +40,8 @@ import io.github.frailty9.blehr.ui.theme.OkGreen
 import io.github.frailty9.blehr.ui.theme.SurfaceRaised
 import io.github.frailty9.blehr.ui.theme.WarnAmber
 
+private val DeviceCardInset = 18.dp
+
 @Composable
 internal fun DeviceCard(
     state: HeartRateState,
@@ -54,57 +56,59 @@ internal fun DeviceCard(
         shape = LocalAppShapes.current.card,
         color = MaterialTheme.colorScheme.surface,
     ) {
-        Column(Modifier.padding(18.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(R.string.nearby_devices),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Ink,
-                )
-                Spacer(Modifier.weight(1f))
-                if (state.scanning) {
-                    StatusChip(stringResource(R.string.phase_scanning), WarnAmber)
-                }
-            }
-            Spacer(Modifier.height(10.dp))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Button(
-                    onClick = { if (state.scanning) onStopScan() else onStartScan() },
-                    shape = LocalAppShapes.current.button,
-                ) {
-                    Text(if (state.scanning) stringResource(R.string.stop_scan) else stringResource(R.string.scan_ble))
-                }
-                if (state.connection == ConnectionPhase.CONNECTED ||
-                    state.connection == ConnectionPhase.CONNECTING ||
-                    state.connection == ConnectionPhase.RECONNECTING
-                ) {
-                    OutlinedButton(onClick = onDisconnect, shape = LocalAppShapes.current.button) {
-                        Text(stringResource(R.string.disconnect))
+        Column(Modifier.padding(vertical = DeviceCardInset)) {
+            Column(Modifier.padding(horizontal = DeviceCardInset)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = stringResource(R.string.nearby_devices),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Ink,
+                    )
+                    Spacer(Modifier.weight(1f))
+                    if (state.scanning) {
+                        StatusChip(stringResource(R.string.phase_scanning), WarnAmber)
                     }
                 }
-            }
-            TextButton(onClick = openBluetoothSettings, shape = LocalAppShapes.current.button) {
-                Text(stringResource(R.string.open_bluetooth_settings))
-            }
-            state.scanError?.let {
-                Text(it.asString(), style = MaterialTheme.typography.bodySmall, color = ErrorRed)
-            }
-            if (state.scanning) {
-                Spacer(Modifier.height(6.dp))
-                LinearProgressIndicator(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(3.dp),
-                    color = WarnAmber,
-                )
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Button(
+                        onClick = { if (state.scanning) onStopScan() else onStartScan() },
+                        shape = LocalAppShapes.current.button,
+                    ) {
+                        Text(if (state.scanning) stringResource(R.string.stop_scan) else stringResource(R.string.scan_ble))
+                    }
+                    if (state.connection == ConnectionPhase.CONNECTED ||
+                        state.connection == ConnectionPhase.CONNECTING ||
+                        state.connection == ConnectionPhase.RECONNECTING
+                    ) {
+                        OutlinedButton(onClick = onDisconnect, shape = LocalAppShapes.current.button) {
+                            Text(stringResource(R.string.disconnect))
+                        }
+                    }
+                }
+                TextButton(onClick = openBluetoothSettings, shape = LocalAppShapes.current.button) {
+                    Text(stringResource(R.string.open_bluetooth_settings))
+                }
+                state.scanError?.let {
+                    Text(it.asString(), style = MaterialTheme.typography.bodySmall, color = ErrorRed)
+                }
+                if (state.scanning) {
+                    Spacer(Modifier.height(6.dp))
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(3.dp),
+                        color = WarnAmber,
+                    )
+                }
             }
             Spacer(Modifier.height(10.dp))
             if (state.devices.isEmpty()) {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = DeviceCardInset, vertical = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
@@ -149,12 +153,11 @@ private fun DeviceRow(
     Surface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = LocalAppShapes.current.row,
         color = if (selected) Accent.copy(alpha = 0.12f) else SurfaceRaised,
         border = if (selected) BorderStroke(1.dp, Accent) else null,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = DeviceCardInset + 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {

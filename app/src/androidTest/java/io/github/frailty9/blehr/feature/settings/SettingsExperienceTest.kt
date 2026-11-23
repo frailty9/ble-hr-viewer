@@ -22,6 +22,9 @@ import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -31,6 +34,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -321,8 +325,8 @@ class SettingsExperienceTest {
         openSettings()
         val heart = compose.onNodeWithTag("overlay_show_heart").performScrollTo()
         val unit = compose.onNodeWithTag("overlay_show_unit").performScrollTo()
-        heart.assertIsOn().performClick().assertIsOff()
-        unit.assertIsOff().performClick().assertIsOn()
+        heart.assertIsOn().performTouchInput { click(Offset(4.dp.toPx(), centerY)) }.assertIsOff()
+        unit.assertIsOff().performTouchInput { click(Offset(width - 4.dp.toPx(), centerY)) }.assertIsOn()
         heart.assertIsOff()
         val input = compose.onNodeWithTag("overlay_threshold_input")
         val save = compose.onNodeWithTag("overlay_threshold_save")
