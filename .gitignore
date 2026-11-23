@@ -12,6 +12,7 @@ build/
 *.log
 
 # Local SDK and editor settings
+/AGENTS.local.md
 /local.properties
 .idea/
 *.iml
