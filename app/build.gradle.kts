@@ -38,8 +38,8 @@ android {
         applicationId = "io.github.frailty9.blehr"
         minSdk = 26
         targetSdk = 35
-        versionCode = 22
-        versionName = "1.0.0"
+        versionCode = 23
+        versionName = "1.1.0-SNAPSHOT"
         buildConfigField("String", "APP_FILING_NUMBER", "\"$appFilingNumber\"")
         buildConfigField("int", "PRIVACY_CONSENT_VERSION", privacyConsentVersion.get().toString())
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
