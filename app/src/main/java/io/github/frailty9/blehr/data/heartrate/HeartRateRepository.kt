@@ -54,6 +54,7 @@ class HeartRateRepository private constructor(context: Context) {
 
     private val recentDevice = RecentHeartRateDeviceStore(context)
     private val startupReconnect = StartupReconnect()
+    private val manualScanReconnect = ManualScanReconnectPolicy()
     private val client = BleHeartRateClient(context) { event -> onBleEvent(event) }
     private val _ui = MutableStateFlow(HeartRateState())
     val ui: StateFlow<HeartRateState> = _ui.asStateFlow()
@@ -81,6 +82,7 @@ class HeartRateRepository private constructor(context: Context) {
                     if (intent.action == BluetoothAdapter.ACTION_STATE_CHANGED && !client.canConnect() &&
                         (_ui.value.connection in activePhases || _ui.value.scanning)
                     ) {
+                        manualScanReconnect.endScan()
                         startupReconnect.finish()
                         recovery.reset()
                         client.close()
@@ -108,12 +110,14 @@ class HeartRateRepository private constructor(context: Context) {
     }
 
     fun startScan() {
+        val connected = _ui.value.connection == ConnectionPhase.CONNECTED
         val startupActive = startupReconnect.finish()
         if (startupActive || recovery.isRecovering || _ui.value.connection == ConnectionPhase.CONNECTING) {
             recovery.reset()
             recoveryDevice = null
             client.disconnect()
         }
+        manualScanReconnect.beginScan(recentDevice.read()?.address, connected)
         _ui.update {
             it.copy(
                 scanning = true,
@@ -131,10 +135,16 @@ class HeartRateRepository private constructor(context: Context) {
     }
 
     fun stopScan() {
+        manualScanReconnect.endScan()
         client.stopScan()
     }
 
     fun connect(device: ScannedDevice) {
+        manualScanReconnect.onExplicitConnect()
+        connectScannedDevice(device, fromScanMatch = false)
+    }
+
+    private fun connectScannedDevice(device: ScannedDevice, fromScanMatch: Boolean) {
         startupReconnect.finish()
         recovery.reset()
         recoveryDevice = null
@@ -151,10 +161,11 @@ class HeartRateRepository private constructor(context: Context) {
                 scanError = null,
             )
         }
-        client.connect(device)
+        if (fromScanMatch) client.connectFromScanMatch(device) else client.connect(device)
     }
 
     fun disconnect() {
+        manualScanReconnect.onExplicitDisconnect()
         startupReconnect.finish()
         recovery.reset()
         client.disconnect()
@@ -162,6 +173,7 @@ class HeartRateRepository private constructor(context: Context) {
     }
 
     internal fun clearSessionAndForgetDevice() {
+        manualScanReconnect.endScan()
         startupReconnect.finish()
         recovery.reset()
         recoveryDevice = null
@@ -173,6 +185,11 @@ class HeartRateRepository private constructor(context: Context) {
     private fun onBleEvent(event: BleEvent) {
         when (event) {
             is BleEvent.ScanResults -> {
+                val matchedAddress = if (_ui.value.scanning) {
+                    manualScanReconnect.findMatch(event.devices.map { it.address })
+                } else {
+                    null
+                }
                 val filtered = event.devices
                     .filter { !it.name.isNullOrBlank() || it.hasHeartRateService }
                     .sortedWith(
@@ -181,25 +198,35 @@ class HeartRateRepository private constructor(context: Context) {
                     )
                     .take(25)
                 _ui.update { it.copy(devices = filtered) }
+                if (matchedAddress != null) {
+                    event.devices.firstOrNull { it.address.equals(matchedAddress, ignoreCase = true) }
+                        ?.let { connectScannedDevice(it, fromScanMatch = true) }
+                }
             }
 
-            is BleEvent.ScanFinished -> _ui.update {
-                it.copy(
-                    scanning = false,
-                    connection = if (it.connection == ConnectionPhase.SCANNING) {
-                        ConnectionPhase.IDLE
+            is BleEvent.ScanFinished -> {
+                manualScanReconnect.endScan()
+                _ui.update {
+                    it.copy(
+                        scanning = false,
+                        connection = if (it.connection == ConnectionPhase.SCANNING) {
+                            ConnectionPhase.IDLE
+                        } else {
+                            it.connection
+                        },
+                        status = if (it.connection == ConnectionPhase.SCANNING) event.message else it.status,
+                    )
+                }
+            }
+
+            is BleEvent.ScanFailed -> {
+                manualScanReconnect.endScan()
+                _ui.update {
+                    if (it.connection == ConnectionPhase.SCANNING) {
+                        it.copy(scanning = false, connection = ConnectionPhase.ERROR, status = event.message)
                     } else {
-                        it.connection
-                    },
-                    status = if (it.connection == ConnectionPhase.SCANNING) event.message else it.status,
-                )
-            }
-
-            is BleEvent.ScanFailed -> _ui.update {
-                if (it.connection == ConnectionPhase.SCANNING) {
-                    it.copy(scanning = false, connection = ConnectionPhase.ERROR, status = event.message)
-                } else {
-                    it.copy(scanning = false, scanError = event.message)
+                        it.copy(scanning = false, scanError = event.message)
+                    }
                 }
             }
 

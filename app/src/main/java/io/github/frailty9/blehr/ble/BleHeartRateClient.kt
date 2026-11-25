@@ -23,6 +23,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import io.github.frailty9.blehr.BuildConfig
 import io.github.frailty9.blehr.R
+import io.github.frailty9.blehr.core.text.UiText
 import io.github.frailty9.blehr.core.text.asUiText
 import io.github.frailty9.blehr.core.text.uiText
 import java.util.UUID
@@ -78,8 +79,7 @@ class BleHeartRateClient(
 
     private val scanTimeout = Runnable {
         if (activeScan != null) {
-            stopScanInternal()
-            onEvent(BleEvent.ScanFinished(uiText(R.string.scan_finished)))
+            finishScan(uiText(R.string.scan_finished))
         }
     }
 
@@ -317,8 +317,14 @@ class BleHeartRateClient(
 
     fun stopScan() {
         if (activeScan == null) return
-        stopScanInternal()
-        onEvent(BleEvent.ScanFinished(uiText(R.string.scan_stopped)))
+        finishScan(uiText(R.string.scan_stopped))
+    }
+
+    private fun finishScan(message: UiText) {
+        val finalResults = scanResults.values.toList()
+        stopScanInternal(emitFinalResults = false)
+        onEvent(BleEvent.ScanFinished(message))
+        if (finalResults.isNotEmpty()) onEvent(BleEvent.ScanResults(finalResults))
     }
 
     private fun stopScanInternal(emitFinalResults: Boolean = true) {
@@ -339,7 +345,15 @@ class BleHeartRateClient(
     }
 
     fun connect(scanned: ScannedDevice) {
-        connect(scanned.device, scanned.name, CONNECT_TIMEOUT_MS)
+        connect(scanned, emitFinalScanResults = true)
+    }
+
+    internal fun connectFromScanMatch(scanned: ScannedDevice) {
+        connect(scanned, emitFinalScanResults = false)
+    }
+
+    private fun connect(scanned: ScannedDevice, emitFinalScanResults: Boolean) {
+        connect(scanned.device, scanned.name, CONNECT_TIMEOUT_MS, emitFinalScanResults)
     }
 
     internal fun reconnect(device: BluetoothDevice, name: String?): Boolean {
@@ -366,8 +380,13 @@ class BleHeartRateClient(
         return reconnect(device, name)
     }
 
-    private fun connect(device: BluetoothDevice, name: String?, timeoutMs: Long) {
-        stopScanInternal()
+    private fun connect(
+        device: BluetoothDevice,
+        name: String?,
+        timeoutMs: Long,
+        emitFinalScanResults: Boolean = true,
+    ) {
+        stopScanInternal(emitFinalResults = emitFinalScanResults)
         closeGatt()
         connectedEmitted = false
         try {
