@@ -29,13 +29,13 @@
 APP 备案通常需要填写签名证书的公钥和摘要信息。构建正式包后执行：
 
 ```powershell
-apksigner verify --print-certs dist\ble-hr-viewer-1.0.0.apk
+apksigner verify --print-certs dist\ble-hr-viewer-1.1.0.apk
 ```
 
 输出包含证书的 SHA-256、SHA-1 与 MD5 摘要。也可直接读取证书：
 
 ```powershell
-keytool -printcert -jarfile dist\ble-hr-viewer-1.0.0.apk
+keytool -printcert -jarfile dist\ble-hr-viewer-1.1.0.apk
 ```
 
 或从密钥库导出：

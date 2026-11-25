@@ -34,7 +34,7 @@
 
 - 扫描、连接 BLE 心率设备，显示实时 BPM、心率趋势和设备接触状态。
 - 解析 RR 间期、能量消耗与原始通知包，显示异常数据及错误原因。
-- 系统悬浮窗显示心率，可拖动、长按关闭，并可调整颜色和透明度。
+- 系统悬浮窗显示心率，可拖动、长按关闭，并可调整颜色、透明度，独立控制心形图标和单位显示；心率达到自定义上限时可切换警示颜色。
 - 悬浮窗开启时通过前台服务保持后台连接；主界面支持横竖屏并保持屏幕常亮。
 
 需要 Android 8.0 及以上、支持 BLE 的手机，以及能够提供标准心率服务的设备。
@@ -49,7 +49,7 @@
 
 1. 确认心率设备已启用心率广播。如需手动开启，请查看设备设置或配套应用。
 2. 首次启动时阅读隐私提示，同意后进入主页。
-3. 点击“扫描 BLE”。首次扫描时按系统提示授权，授权后自动开始扫描。Android 11 及以下需授予定位权限并开启系统定位服务。选择设备连接，设备旁的 `HR` 标记表示其广播包含标准心率服务。
+3. 点击“扫描 BLE”。首次扫描时按系统提示授权，授权后自动开始扫描。Android 11 及以下需授予定位权限并开启系统定位服务。最近使用的设备会在扫描发现后自动尝试连接；也可从列表选择其他设备，设备旁的 `HR` 标记表示其广播包含标准心率服务。
 4. 点击心率卡片右上角的窗口图标开启悬浮窗。若系统要求授权，允许“显示在其他应用上层”后返回应用。
 5. 拖动悬浮窗移动位置。关闭时可点击心率卡片右上角的关闭图标、长按悬浮窗约 0.6 秒，或使用通知中的关闭操作。单击悬浮窗不执行操作。
 
@@ -73,7 +73,7 @@
 | Navigation Compose | 2.8.9 |
 | Lifecycle | 2.8.3 |
 | Android SDK | compileSdk / targetSdk 35，minSdk 26 |
-| 应用版本 | 1.0.0（versionCode 22） |
+| 应用版本 | 1.1.0（versionCode 24） |
 | 应用包名 | `io.github.frailty9.blehr` |
 
 1.0.0 起应用包名为 `io.github.frailty9.blehr`。0.4.x 使用 `com.example.blehr`，Android 会将 1.0.0 作为独立应用安装，旧版的本地设置和权限不会迁移。可以保留旧版，也可以在确认新版可用后卸载旧版。
@@ -84,14 +84,14 @@ Windows：
 
 ```powershell
 .\gradlew.bat :app:assembleDebug
-adb install -r dist\ble-hr-viewer-1.0.0-debug.apk
+adb install -r dist\ble-hr-viewer-1.1.0-debug.apk
 ```
 
 Linux / macOS：
 
 ```sh
 ./gradlew :app:assembleDebug
-adb install -r dist/ble-hr-viewer-1.0.0-debug.apk
+adb install -r dist/ble-hr-viewer-1.1.0-debug.apk
 ```
 
 构建完成后会自动将带产品名和版本号的 APK 导出到 `dist/`，版本号取自构建配置。
@@ -150,7 +150,7 @@ Windows 使用以下命令；Linux / macOS 将 `.\gradlew.bat` 替换为 `./grad
 
 - 发布前核对 `app/build.gradle.kts` 中的 `versionCode`、`versionName` 和本文件的版本信息。
 - 发布前对照[发布检查清单](docs/compliance/RELEASE_CHECKLIST.md)逐项确认。
-- Debug APK 用于本地测试，导出为 `ble-hr-viewer-1.0.0-debug.apk`。
+- Debug APK 用于本地测试，导出为 `ble-hr-viewer-1.1.0-debug.apk`。
 - 安装包及其 SHA-256 校验值作为发布附件提供，构建产物不提交到 Git。
 - 在真机上检查首次启动隐私提示、同意与撤回流程、设备扫描、心率订阅、断开连接，以及悬浮窗的授权、后台显示、拖动和长按关闭。
 
@@ -158,10 +158,10 @@ Windows 使用以下命令；Linux / macOS 将 `.\gradlew.bat` 替换为 `./grad
 
 将根目录的 [`keystore.properties.example`](keystore.properties.example) 复制为 `keystore.properties`，以 UTF-8 保存。填入 `storeFile`（密钥库路径）、`storePassword`（密钥库密码）、`keyAlias`（密钥别名）和 `keyPassword`（密钥密码，省略时使用 `storePassword`）。相对路径以项目根目录为准。Windows 路径可写成 `D:/Keys/ble-hr-viewer-release.jks`，文件内容中的字面反斜杠要写成 `\\`。
 
-配置完成后执行 `.\gradlew.bat :app:assembleRelease`，签名 APK 会导出为 `dist/ble-hr-viewer-1.0.0.apk`。如果没有 `keystore.properties`，该命令仍可构建，导出的文件带有 `-unsigned.apk` 后缀。使用 Android SDK Build Tools 中的 `apksigner` 验证签名并查看证书指纹：
+配置完成后执行 `.\gradlew.bat :app:assembleRelease`，签名 APK 会导出为 `dist/ble-hr-viewer-1.1.0.apk`。如果没有 `keystore.properties`，该命令仍可构建，导出的文件带有 `-unsigned.apk` 后缀。使用 Android SDK Build Tools 中的 `apksigner` 验证签名并查看证书指纹：
 
 ```powershell
-apksigner verify --print-certs dist/ble-hr-viewer-1.0.0.apk
+apksigner verify --print-certs dist/ble-hr-viewer-1.1.0.apk
 ```
 
 `keystore.properties` 和密钥库只保存在本机。Git 已忽略该配置文件以及 `.jks`、`.keystore` 等常用密钥库格式。
@@ -196,7 +196,7 @@ apksigner verify --print-certs dist/ble-hr-viewer-1.0.0.apk
 ## 已知限制
 
 - 仅接收心率，不向其他设备广播心率；设备需实现标准 `0x180D` / `0x2A37` 服务与特征。
-- 应用冷启动时，如果蓝牙已开启且权限已授予，会尝试连接最近一次成功订阅心率的设备，最多等待 10 秒。点击扫描或断开可取消本次尝试，运行中掉线后可手动重连。
+- 应用冷启动时，如果蓝牙已开启且权限已授予，会尝试连接最近一次成功订阅心率的设备，最多等待 10 秒。手动扫描发现该设备也会尝试连接；手动断开后，本次进程内只列出设备，直到手动选择设备连接后才恢复扫描自动连接。设备蓝牙地址变化时需重新选择。
 - 系统确认断开时，主界面和悬浮窗立即清除实时心率。若连接仍在但收不到有效心率，默认 5 秒后清除读数并直连原设备，最多尝试 3 次。「设置 → 蓝牙连接」可按整秒调节超时（3–30 秒）。
 - 某些设备报告的接触状态可能不准确。收到 `0 BPM` 时，应用显示“无脉搏信号”。
 - 部分系统的省电策略会限制后台服务和悬浮窗。

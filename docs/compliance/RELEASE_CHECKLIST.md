@@ -7,8 +7,8 @@
 - [ ] `app/build.gradle.kts` 的 `versionCode` 单调递增，`versionName` 与本次发布一致。
 - [ ] `applicationId` 为 `io.github.frailty9.blehr`，未在发布后变更。
 - [ ] `README.md` 的版本表与构建命令中的 APK 文件名已同步。
-- [ ] 发布分支为 `1.0.0`，正式版本提交后打 tag `v1.0.0`。
-- [ ] 确认从 0.4.x 切换的说明。1.0.0 会作为独立应用安装，可与旧版共存，旧版的本地设置和权限不会迁移。
+- [ ] 发布分支为 `1.1.0`，正式版本提交后打 tag `v1.1.0`。
+- [ ] 确认从 1.0.0 升级时包名与签名证书保持一致，可覆盖安装并保留本地设置。
 
 ## 2. 签名与构建
 
@@ -23,21 +23,21 @@
 - [ ] 验证签名与证书指纹：
 
 ```powershell
-apksigner verify --print-certs dist\ble-hr-viewer-1.0.0.apk
+apksigner verify --print-certs dist\ble-hr-viewer-1.1.0.apk
 ```
 
 - [ ] 记录证书 SHA-256 指纹；后续版本必须使用同一签名证书。
 - [ ] 计算安装包 SHA-256 并随发布说明提供：
 
 ```powershell
-Get-FileHash -Algorithm SHA256 dist\ble-hr-viewer-1.0.0.apk
+Get-FileHash -Algorithm SHA256 dist\ble-hr-viewer-1.1.0.apk
 ```
 
 - [ ] 核对 APK 标识与权限：
 
 ```powershell
-aapt dump badging dist\ble-hr-viewer-1.0.0.apk
-aapt dump permissions dist\ble-hr-viewer-1.0.0.apk
+aapt dump badging dist\ble-hr-viewer-1.1.0.apk
+aapt dump permissions dist\ble-hr-viewer-1.1.0.apk
 ```
 
 预期：包名 `io.github.frailty9.blehr`；不包含 `android.permission.INTERNET`。
@@ -64,7 +64,7 @@ aapt dump permissions dist\ble-hr-viewer-1.0.0.apk
 
 ## 5. 分发材料
 
-- [ ] APK：`dist/ble-hr-viewer-1.0.0.apk`
+- [ ] APK：`dist/ble-hr-viewer-1.1.0.apk`
 - [ ] SHA-256 校验文件或发布说明中的校验值
 - [ ] [PRIVACY.md](../../PRIVACY.md)、[AGREEMENT.md](../../AGREEMENT.md)、[THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md)
 - [ ] GitHub Release 说明包含：版本号、变更摘要、已知限制、非医疗器械声明、安装与签名校验方法
@@ -73,13 +73,13 @@ aapt dump permissions dist\ble-hr-viewer-1.0.0.apk
 ## 6. 发布说明模板
 
 ```markdown
-## BLE HR Viewer 1.0.0
+## BLE HR Viewer 1.1.0
 
-首个正式版本。
+悬浮窗可独立控制心形图标与单位显示，并支持按心率上限切换警示颜色；手动扫描发现最近使用的设备时会尝试自动连接。
 
-- 包名：io.github.frailty9.blehr（与 0.4.x 分别安装，旧版本地设置不会迁移）
-- 版本：1.0.0（versionCode 22）
-- 安装包：ble-hr-viewer-1.0.0.apk
+- 包名：io.github.frailty9.blehr
+- 版本：1.1.0（versionCode 24）
+- 安装包：ble-hr-viewer-1.1.0.apk
 - SHA-256：<填写>
 - 签名证书 SHA-256：<填写>
 
