@@ -100,7 +100,7 @@ adb install -r dist/ble-hr-viewer-1.1.0-debug.apk
 
 ## 源码结构与维护
 
-源码位于 `app/src/main/java/com/example/blehr/`，测试目录按相同包结构组织。
+源码位于 [`app/src/main/java/io/github/frailty9/blehr/`](app/src/main/java/io/github/frailty9/blehr/)。[JVM 单元测试](app/src/test/java/io/github/frailty9/blehr/)和 [Android 设备测试](app/src/androidTest/java/io/github/frailty9/blehr/)沿用相同的包结构。
 
 ```text
 MainActivity.kt       系统窗口、setContent
@@ -109,13 +109,15 @@ navigation/          类型安全路由、NavHost、250ms 进出动画
 feature/home/        主页面布局、Route、ViewModel、权限引导
   components/        标题栏、BPM、趋势、设备、悬浮窗入口
 feature/settings/    设置页布局、Route、ViewModel
-  components/        语言、主题、悬浮窗外观、蓝牙超时、诊断、帮助
+  components/        语言、主题、悬浮窗外观、蓝牙超时、诊断、帮助、关于与合规
+feature/privacy/     首次启动的隐私同意界面
 data/heartrate/      进程级 BLE 状态与心率数据流
+data/privacy/        隐私同意状态存储
 data/settings/       主题与外观存储、语言适配、设置模型
 ble/                 蓝牙扫描、GATT、心率协议解析与模型
 overlay/             系统悬浮窗 View 和前台 Service
 core/text/           延迟本地化文本与诊断映射
-ui/                  跨页面组件与主题
+ui/                  跨页面组件、主题与合规文档界面
 ```
 
 | 想调整的内容 | 修改位置 |
